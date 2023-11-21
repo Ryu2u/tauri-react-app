@@ -1,0 +1,455 @@
+
+.side-tool-bar {
+  height: 100%;
+  width: 60px;
+  text-align: center;
+  ul {
+    padding: 0;
+    list-style: none;
+
+    li {
+      padding: 10px
+    }
+
+    li:hover {
+      background-color: #e5f1ff;
+    }
+  }
+}
+
+.room-list-bar {
+  padding: 10px 5px;
+  width: 100%;
+  animation: slideDown 0.3s ease-in-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// 从透明出现
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#side-bar, .layout {
+  overflow-y: auto;
+  height: 100%;
+}
+
+#side-bar {
+  &::-webkit-scrollbar {
+    background: transparent; // 滑块颜色
+    width: 5px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #8888;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: black;
+  }
+}
+
+nz-header {
+  background: #fff;
+  padding: 0;
+}
+
+#chatContent {
+  margin: 0 16px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    background: transparent; // 滑块颜色
+    width: 5px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #8888;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: black;
+  }
+}
+
+nz-breadcrumb {
+  margin: 16px 0;
+}
+
+.inner-content {
+  padding: 24px;
+  background: #fff;
+  //min-height: 160px;
+}
+
+#footer {
+  padding: 0 0;
+  border-top: 1px solid #8888;
+}
+
+
+.message {
+  position: relative;
+  display: flex;
+  margin: 20px 0;
+
+  p {
+    margin-bottom: 0;
+  }
+}
+
+.chat_content {
+  position: relative;
+  overflow-y: auto;
+}
+
+/* 左边 */
+.chat_left {
+  justify-content: flex-start;
+  padding-left: 60px;
+}
+
+.chat_right {
+  justify-content: flex-end;
+  padding-right: 60px;
+}
+
+.chat_left_avatar {
+
+}
+
+.chat_right_avatar {
+  //position: absolute;
+  //right: 0;
+  //width: 50px;
+  //height: 50px;
+  //background-color: #4459AB;
+  //margin-top: 20px;
+  //margin-left: 10px;
+  //margin-right: 10px;
+  //text-align: center;
+  //line-height: 50px;
+  //color: white;
+  //border-radius: 25px;
+  //user-select: none;
+}
+
+.left_avatar {
+  position: absolute;
+  left: 0;
+  background-color: #4459AB;
+  margin-top: 10px;
+  margin-left: 10px;
+  user-select: none;
+}
+
+.right_avatar {
+  position: absolute;
+  right: 0;
+  background-color: #4459AB;
+  margin-top: 10px;
+  margin-right: 10px;
+  user-select: none;
+}
+
+.right_avatar:hover, .left_avatar:hover {
+  cursor: pointer;
+}
+
+/* 右边 */
+.chat_right_content {
+  width: 100%;
+}
+
+.chat_left_content {
+  width: 100%;
+}
+
+.chat_right_msg {
+  display: inline-block;
+  text-align: left;
+  position: relative;
+  float: right;
+  max-width: 610px;
+  padding: 5px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+}
+
+.chat_left_msg {
+  display: inline-block;
+  text-align: left;
+  float: left;
+  position: relative;
+  right: 0;
+  max-width: 610px;
+  padding: 5px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+}
+
+.chat_left_time {
+  text-align: left;
+  padding-left: 10px;
+  padding-bottom: 10px;
+}
+
+
+.chat_right {
+  justify-content: flex-end;
+  padding-right: 60px;
+}
+
+
+.chat_right_time {
+  text-align: right;
+  padding-right: 10px;
+  padding-bottom: 10px;
+}
+
+
+/* foot */
+.chat_context {
+  width: 100%;
+  height: 100%;
+  font-size: 17px;
+  box-sizing: border-box;
+  outline: none;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  border-width: 0px;
+  padding: 16px;
+}
+
+.chat_commit {
+  width: 80px;
+  height: 30px;
+  color: white;
+  background-color: #4F7cff;
+  line-height: 30px;
+  text-align: center;
+  border-radius: 5px;
+  position: absolute;
+  right: 10px;
+  bottom: 20px;
+  margin-right: 10px;
+}
+
+.chat_context {
+  resize: none;
+}
+
+.chat_context::placeholder {
+  color: black;
+}
+
+.line {
+  width: 100%;
+  border-top: 1px;
+  border-color: #f4f5f7;
+  border-style: solid;
+}
+
+.more-msg {
+  text-align: center;
+}
+
+.more-msg a:hover {
+  text-decoration: underline;
+}
+
+.loading-msg {
+  text-align: center;
+  padding-top: 40%;
+}
+
+.group-users {
+  position: absolute;
+  right: 10px;
+  font-size: 20px;
+}
+
+.group-user-list {
+  min-width: 200px;
+  max-height: 500px;
+  overflow: auto;
+}
+
+.group-users span:hover {
+  cursor: pointer;
+  background-color: #8888;
+}
+
+.room-header {
+  text-align: center;
+  font-size: 16px;
+  height: 37px;
+  line-height: 37px;
+  background-color: #fff;
+}
+
+:global(.chat-modal .ant-modal-header) {
+  padding: 0 !important;
+}
+
+.ant-list-item {
+  padding-left: 4px;
+}
+
+.spin-loading {
+  margin: 7px 5px 0 5px;
+  padding: 0 5px 0 5px;
+  float: right;
+}
+
+.rollback {
+  margin: 7px 5px 0 5px;
+  padding: 0 5px 0 5px;
+  float: right;
+}
+
+.rollback:hover, .spin-loading:hover {
+  cursor: pointer;
+}
+
+.is_read {
+  display: inline-block;
+  text-align: center;
+  margin: 7px 5px 0 5px;
+  padding: 0 5px 0 5px;
+  background-color: #8888;
+  font-size: 1em;
+  border-radius: 20px;
+  white-space: pre-wrap;
+  float: right;
+}
+
+.is_read:hover {
+  cursor: pointer;
+  background-color: #fff;
+  //color: blue;
+  user-select: none;
+}
+
+.msg_toolbar {
+  width: 100%;
+  height: 100%;
+}
+
+
+.read_btn {
+  display: inline-block;
+  text-align: center;
+  margin-top: 7px;
+  margin-left: 5px;
+  padding: 0 5px 0 5px;
+  background-color: #ffffff;
+  font-size: 1em;
+  white-space: pre-wrap;
+}
+
+.read_btn:hover {
+  cursor: pointer;
+  background-color: #8888;
+  user-select: none;
+}
+
+.read_and_unread_list {
+  height: 300px;
+  width: 250px;
+  overflow: auto;
+}
+
+.is_read_loading {
+  background: rgba(0, 0, 0, 0.05);
+  text-align: center;
+  padding: 137px 79px;
+}
+
+.ant-card-head {
+  border: none !important;
+}
+
+.content {
+  border-bottom: 1px solid #8888;
+
+  &::-webkit-scrollbar {
+    background: transparent; // 滑块颜色
+    width: 5px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #8888;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: black;
+  }
+}
+
+.editor-footer {
+  position: absolute;
+  right: 24px;
+  bottom: 5%;
+}
+
+.ant-dropdown-menu-item, .ant-dropdown-menu-submenu-title {
+  user-select: none;
+}
+
+
+.fixed-input {
+  list-style: none;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.room-list {
+}
+
+.room-list-item {
+  margin: 10px;
+}
+
+.room-list-item-checked {
+  box-shadow: 0px -10px 0px 0px rgba(0, 0, 0, 0), /*上边阴影*/
+  -10px 0px 0px 0px rgba(0, 0, 0, 0), /*左边阴影*/
+  inset -54px 0px 35px -34px rgb(0, 0, 255, 0.2), /*右边阴影  蓝色*/
+  0px 10px 0px 0px rgba(0, 0, 0, 0); /*下边阴影*/
+}
+
+.room-list-item-checked:after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  width: 3px;
+  height: 72px;
+  background-color: #428dfa;
+}
+
+.room-list-item:hover {
+  background-color: #e5f1ff;
+  border-radius: 10px;
+  cursor: pointer;
+}

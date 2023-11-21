@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package message;
+
+enum MsgType{
+  // 登录消息,用于身份验证
+  LOGIN_MESSAGE_TYPE = 0;
+  // 私聊消息
+  SINGLE_MESSAGE_TYPE = 1;
+  // 群聊消息
+  GROUP_MESSAGE_TYPE = 2;
+  // 应答消息,用于确认消息是否已发送,由服务器返回
+  ACK_MESSAGE_TYPE = 3;
+  // 撤回消息
+  ROLLBACK_MESSAGE_TYPE = 4;
+  // 任务消息已读
+  TASK_READ_MESSAGE_TYPE = 5;
+  // 通知消息，例如错误消息和消息发送成功地回告
+  RESPONSE_MESSAGE_TYPE = 6;
+}
+
+message ChatMessagePack{
+  reserved  1;
+  string token = 2;
+  MsgType msg_type = 3;
+  oneof obj{
+    LoginMessage login_message = 4;
+    SingleMessage single_message = 5;
+    GroupMessage group_message = 6;
+    AckMessage ack_message = 7;
+    RollbackMessage rollback_message = 8;
+    TaskReadMessage task_read_message = 9;
+    ResponseMessage response_message = 10;
+  }
+}
+
+message LoginMessage{
+  int32 userId = 1;
+  string username = 2;;
+}
+message SingleMessage{
+  string receiverId = 1;
+  string receiverName = 2 ;
+  ChatMessage chat_message = 3;
+}
+message GroupMessage{
+  string  group_id = 1;
+  string group_name = 2;
+  ChatMessage chat_message = 3;
+}
+message AckMessage{
+  int32 code = 1;
+  string msg_content = 2;
+  string msg_id = 3;
+  string room_id = 4;
+  int32 user_id = 5;
+  int32 msg_type = 6;
+
+}
+message RollbackMessage{
+  string msg_id = 1;
+  string room_id = 2;
+
+}
+message TaskReadMessage{
+  string msg_id = 1;
+  string room_id = 2;
+  string user_id = 3;
+
+}
+message ResponseMessage{
+  int32 code = 1;
+  // 该msg为服务端返回响应的消息内容，例如: "成功" ,"失败"
+  string msg = 2;
+  string msg_id = 3;
+}
+
+message ChatMessage{
+  // 消息id uuid
+  string id = 1;
+
+  // 聊天室id
+  string chatRoomId = 2;
+
+  /**
+   * 0: 为闲聊消息(默认)
+   * 1: 为任务消息(需要显示已读确认按钮，并且发送者可以看见哪些人已读)
+   */
+  int32 messageType = 3;
+
+  // 消息发送者
+  int32 senderId = 4;
+
+  // 消息内容
+  string content = 5;
+
+  // 图片路径
+  string imagesPath = 6;
+
+  // 附件路径
+  string filesPath = 7;
+
+  // 视频路径
+  string videosPath = 8;
+
+  // 发送时间
+  int64 sendTime = 9;
+
+  // 创建时间
+  int64 createdTime = 10;
+
+  // 发送人的名称
+  string senderName = 11;
+
+  // 接收人id
+  int32 receiverId = 12;
+
+  // 是否已读
+  bool isRead = 13;
+
+  // 聊天室名称
+  string chatRoomName = 14;
+
+  // 已读消息人数
+  int32 readCount = 15;
+
+  // 接收消息总人数
+  int32 receiverCount = 16;
+
+  // 图片路径集合
+  repeated string imagePathList = 17;
+
+  // 文件路径集合
+  repeated string filePathList = 18;
+
+  // 视频路径集合
+  repeated string videoPathList = 19;
+
+}
