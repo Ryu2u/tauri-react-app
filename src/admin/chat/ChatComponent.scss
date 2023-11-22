@@ -1,5 +1,4 @@
 
-
 .room-list-bar {
   padding: 10px 5px;
   width: 100%;
@@ -27,9 +26,14 @@
   }
 }
 
-#side-bar, .layout {
+#side-bar {
   overflow-y: auto;
   height: 100%;
+}
+.layout{
+  overflow-y: auto;
+  height: 100%;
+  padding-top: 30px;
 }
 
 #side-bar {
@@ -88,7 +92,7 @@ nz-breadcrumb {
   background-color: #999999;
 }
 
-.resize-div{
+.resize-div {
   background-color: #8888;
 }
 
@@ -416,6 +420,7 @@ nz-breadcrumb {
 }
 
 .room-list {
+  padding-bottom: 30px;
 }
 
 .room-list-item {
@@ -444,9 +449,25 @@ nz-breadcrumb {
   cursor: pointer;
 }
 
-.input-area{
-  width:100%;
+.side-tool-bar {
   height: 100%;
-  resize: none;
+  width: 60px;
+  text-align: center;
+  cursor: default;
+  background-color: #8888;
+  float: left;
+  ul {
+    padding: 0;
+    list-style: none;
+    margin: 0;
 
+    li {
+      padding: 10px;
+    }
+
+    li:hover {
+      background-color: #e5f1ff;
+      cursor: pointer;
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import {Component} from "react";
-import "./login.scss";
+import "./LoginComonent.scss";
 import {CloseOutlined, LockOutlined, MinusOutlined, UserOutlined} from "@ant-design/icons";
 import {Avatar, Button, Checkbox, Form, Input} from "antd";
 import {appWindow} from "@tauri-apps/api/window";

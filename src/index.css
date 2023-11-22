@@ -2,9 +2,10 @@
 
 body,html {
     width: 100%;
-    height: 100%;
+    height: 100vh;
     padding:0;
     margin: 0;
+    /*overflow: hidden;*/
     cursor: url(https://cdn.jsdelivr.net/npm/kang-static/Hexo/img/default.cur), default;
     background-image: linear-gradient(120deg, #f093fb 0%, #f5576c 100%);
 }

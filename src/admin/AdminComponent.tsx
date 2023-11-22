@@ -1,5 +1,5 @@
 import {Component, useEffect} from "react";
-import "./admin.scss"
+import "./AdminComponent.scss"
 import {Outlet, useNavigate} from "react-router";
 import {CloseOutlined, FullscreenOutlined, MinusOutlined, SettingOutlined} from "@ant-design/icons";
 import {appWindow} from "@tauri-apps/api/window";
@@ -11,7 +11,7 @@ export function AdminComponent() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // navigate("/admin/chat");
+        navigate("/admin/chat");
     });
 
     function closeClick() {
@@ -49,15 +49,6 @@ export function AdminComponent() {
                     </div>
                 </div>
                 <div className={"admin-content"}>
-                    {/*<div className={"side-tool-bar"}>*/}
-                    {/*    <ul>*/}
-                    {/*        <li onClick={() => navigate("/admin/chat")}>*/}
-                    {/*            <Avatar size={40}*/}
-                    {/*                    src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}*/}
-                    {/*            />*/}
-                    {/*        </li>*/}
-                    {/*    </ul>*/}
-                    {/*</div>*/}
                     <Outlet/>
                 </div>
         </>

@@ -2,10 +2,11 @@ import {Component, useState} from "react";
 import {Avatar, Input, Layout, List} from "antd";
 import Sider from "antd/es/layout/Sider";
 import {Content, Footer, Header} from "antd/es/layout/layout";
-import "./chat.scss"
+import "./ChatComponent.scss"
 import {SearchOutlined} from "@ant-design/icons";
 import {Resizable} from "re-resizable";
 import TextArea from "antd/es/input/TextArea";
+import VditorEdit from "../../components/VditorEdit";
 
 export function ChatComponent() {
 
@@ -34,9 +35,20 @@ export function ChatComponent() {
         }
     }
 
+
     return (
         <>
             <Layout className={"layout"}>
+                <div className={"side-tool-bar"}>
+                    <ul>
+                        <li>
+                            <Avatar size={40}
+                                    src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}
+                            />
+                        </li>
+                    </ul>
+                </div>
+
                 <Sider onWheel={e => sideMouseUpEvent(e)} id={"side-bar"} theme={"light"}>
                     {
                         searchBarVisible &&
@@ -125,12 +137,12 @@ export function ChatComponent() {
                             height: 200
                         }}
                         handleClasses={{top: 'resize-div'}}
-                        minHeight={300}
+                        minHeight={200}
                         maxHeight={"70%"}
                         enable={{top: true, right: false, bottom: false, left: false, topRight: false, bottomRight: false, bottomLeft: false, topLeft: false}}
                     >
                         <Footer id={"footer"}>
-                            <TextArea classNames={"input-area"}/>
+                            <VditorEdit />
                         </Footer>
                     </Resizable>
                 </Layout>
