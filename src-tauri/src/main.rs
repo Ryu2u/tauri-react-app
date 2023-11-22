@@ -19,6 +19,15 @@ mod ws;
 use ws::connect_websocket;
 use command::{greet, route_to_admin, back_to_login};
 
+use tokio_tungstenite::{
+  tungstenite::Result,
+};
+async fn send_http() -> Result<()>{
+
+  Ok(())
+}
+
+
 
 #[tokio::main]
 async fn main() {

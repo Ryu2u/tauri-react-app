@@ -3,8 +3,8 @@ import "vditor/dist/index.css";
 import {useEffect, useState} from "react";
 import "./VditorEdit.scss"
 
-export default function VditorEdit() {
-    const [vd, setVd] = useState<Vditor>();
+export default function VditorEdit({getVditor}) {
+
     useEffect(() => {
         const vditor = new Vditor("vditor", {
             height: '100%',
@@ -14,7 +14,8 @@ export default function VditorEdit() {
             },
             after: () => {
                 vditor.setValue("`Vditor` 最小代码示例");
-                setVd(vditor);
+
+                getVditor(vditor);
             }
         });
     }, []);

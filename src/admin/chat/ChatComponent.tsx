@@ -1,28 +1,20 @@
-import {Component, useState} from "react";
-import {Avatar, Input, Layout, List} from "antd";
+import {useState} from "react";
+import {Avatar, Button, Input, Layout, List} from "antd";
 import Sider from "antd/es/layout/Sider";
 import {Content, Footer, Header} from "antd/es/layout/layout";
 import "./ChatComponent.scss"
 import {SearchOutlined} from "@ant-design/icons";
 import {Resizable} from "re-resizable";
-import TextArea from "antd/es/input/TextArea";
 import VditorEdit from "../../components/VditorEdit";
+import Vditor from "vditor";
+import {emit} from "@tauri-apps/api/event";
 
 export function ChatComponent() {
 
     const [searchBarVisible, setSearchBarVisible] = useState(false);
+    const [vditor, setVditor] = useState<Vditor>();
 
     const list: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    const roomList = list.map(v =>
-        <List.Item key={v} className={"room-list-item"}>
-            <List.Item.Meta
-                avatar={<Avatar src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}/>}
-                title={"Hello World "}
-                description={v}
-            >
-            </List.Item.Meta>
-        </List.Item>
-    );
 
     function sideMouseUpEvent(event: React.WheelEvent<HTMLDivElement>) {
         const sidebar = document.getElementById("side-bar")!;
@@ -33,6 +25,20 @@ export function ChatComponent() {
                 setSearchBarVisible(false);
             }
         }
+    }
+
+    function sendMsg() {
+        let html = vditor.getHTML();
+        if (!html || html == "") {
+            return;
+        }
+        console.log("sen_msg -->");
+        console.log(html);
+        emit('msg_send', {
+            msg: html
+        }).then(v => {
+            vditor.setValue("");
+        });
     }
 
 
@@ -57,7 +63,16 @@ export function ChatComponent() {
                         </div>
                     }
                     <List className={"room-list"} itemLayout={"horizontal"}>
-                        {roomList}
+                        {list.map((v) => (
+                            <List.Item key={v} className={"room-list-item"}>
+                                <List.Item.Meta
+                                    avatar={<Avatar src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}/>}
+                                    title={"Hello World "}
+                                    description={v}
+                                >
+                                </List.Item.Meta>
+                            </List.Item>
+                        ))}
                     </List>
                 </Sider>
                 <Layout>
@@ -137,12 +152,17 @@ export function ChatComponent() {
                             height: 200
                         }}
                         handleClasses={{top: 'resize-div'}}
-                        minHeight={200}
+                        minHeight={201}
                         maxHeight={"70%"}
                         enable={{top: true, right: false, bottom: false, left: false, topRight: false, bottomRight: false, bottomLeft: false, topLeft: false}}
                     >
                         <Footer id={"footer"}>
-                            <VditorEdit />
+                            <VditorEdit getVditor={(e) => setVditor(e)}/>
+                            <div className={"editor-footer"}>
+                                <Button type={"primary"} onClick={sendMsg}>
+                                    发送
+                                </Button>
+                            </div>
                         </Footer>
                     </Resizable>
                 </Layout>
