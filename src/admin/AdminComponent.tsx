@@ -1,29 +1,28 @@
-import {Component} from "react";
+import {Component, useEffect} from "react";
 import "./admin.scss"
-import {Outlet} from "react-router";
+import {Outlet, useNavigate} from "react-router";
 import {CloseOutlined, FullscreenOutlined, MinusOutlined, SettingOutlined} from "@ant-design/icons";
 import {appWindow} from "@tauri-apps/api/window";
+import {Avatar} from "antd";
 
 
-export class AdminComponent extends Component {
-    state = {
-        hasMounted: false
-    };
+export function AdminComponent() {
 
+    const navigate = useNavigate();
 
-    constructor(props: AdminComponent) {
-        super(props);
-    }
+    useEffect(() => {
+        // navigate("/admin/chat");
+    });
 
-
-    closeClick() {
+    function closeClick() {
         appWindow.minimize().then();
     }
 
-    quickClick() {
+    function quickClick() {
         appWindow.hide().then();
     }
-    full(){
+
+    function full() {
         appWindow.isMaximized().then(b => {
             if (b) {
                 appWindow.unmaximize().then();
@@ -33,28 +32,35 @@ export class AdminComponent extends Component {
         })
     }
 
-    render() {
-        return (
-            <>
+    return (
+        <>
                 <div data-tauri-drag-region className={"title-bar flex"}>
                     <div className={"btn-group setting"}>
                         <SettingOutlined/>
                     </div>
-                    <div className={"btn-group close"} onClick={this.closeClick}>
+                    <div className={"btn-group close"} onClick={closeClick}>
                         <MinusOutlined/>
                     </div>
-                    <div className={"btn-group full"} onClick={this.full}>
-                        <FullscreenOutlined />
+                    <div className={"btn-group full"} onClick={full}>
+                        <FullscreenOutlined/>
                     </div>
-                    <div className={"btn-group quit"} onClick={this.quickClick}>
+                    <div className={"btn-group quit"} onClick={quickClick}>
                         <CloseOutlined/>
                     </div>
                 </div>
                 <div className={"admin-content"}>
+                    {/*<div className={"side-tool-bar"}>*/}
+                    {/*    <ul>*/}
+                    {/*        <li onClick={() => navigate("/admin/chat")}>*/}
+                    {/*            <Avatar size={40}*/}
+                    {/*                    src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}*/}
+                    {/*            />*/}
+                    {/*        </li>*/}
+                    {/*    </ul>*/}
+                    {/*</div>*/}
                     <Outlet/>
                 </div>
-            </>
-        );
-    }
+        </>
+    );
 
 }

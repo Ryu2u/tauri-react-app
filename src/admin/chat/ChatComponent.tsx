@@ -1,166 +1,140 @@
-import {Component} from "react";
+import {Component, useState} from "react";
 import {Avatar, Input, Layout, List} from "antd";
 import Sider from "antd/es/layout/Sider";
 import {Content, Footer, Header} from "antd/es/layout/layout";
 import "./chat.scss"
 import {SearchOutlined} from "@ant-design/icons";
+import {Resizable} from "re-resizable";
+import TextArea from "antd/es/input/TextArea";
 
-export class ChatComponent extends Component {
+export function ChatComponent() {
 
-    constructor(props: ChatComponent) {
-        super(props);
-        this.state = {
-            searchBarVisible: false
-        }
-    }
+    const [searchBarVisible, setSearchBarVisible] = useState(false);
 
-    list: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    roomList = this.list.map(v => {
-        return (
-            <>
-                <List.Item key={v} className={"room-list-item"}>
-                    <List.Item.Meta
-                        avatar={<Avatar src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}/>}
-                        title={"Hello World"}
-                        description={"test test"}
-                    >
-                    </List.Item.Meta>
-                </List.Item>
-            </>
-        );
-    });
+    const list: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const roomList = list.map(v =>
+        <List.Item key={v} className={"room-list-item"}>
+            <List.Item.Meta
+                avatar={<Avatar src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}/>}
+                title={"Hello World "}
+                description={v}
+            >
+            </List.Item.Meta>
+        </List.Item>
+    );
 
-    sideMouseUpEvent(event: React.WheelEvent<HTMLDivElement>) {
+    function sideMouseUpEvent(event: React.WheelEvent<HTMLDivElement>) {
         const sidebar = document.getElementById("side-bar")!;
         if (sidebar) {
-            console.log(sidebar.scrollTop);
             if (sidebar.scrollTop == 0) {
-                this.setState((prevState) => ({
-                    searchBarVisible: true
-                }));
+                setSearchBarVisible(true);
             } else {
-                this.setState((pre) => ({
-                    searchBarVisible: false
-                }));
+                setSearchBarVisible(false);
             }
-            this.render();
         }
     }
 
-
-    render() {
-        return (
-            <>
-                <Layout className={"layout"}>
-                    <div className={"side-tool-bar"}>
-                        <ul>
-                            <li>
-                                <Avatar size={40}
-                                        src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}
+    return (
+        <>
+            <Layout className={"layout"}>
+                <Sider onWheel={e => sideMouseUpEvent(e)} id={"side-bar"} theme={"light"}>
+                    {
+                        searchBarVisible &&
+                        <div className={"room-list-bar"}>
+                            <Input prefix={<SearchOutlined/>}/>
+                        </div>
+                    }
+                    <List className={"room-list"} itemLayout={"horizontal"}>
+                        {roomList}
+                    </List>
+                </Sider>
+                <Layout>
+                    <Header className={"room-header"}></Header>
+                    <Content id={"chatContent"}>
+                        <div className="more-msg"></div>
+                        <div className="message chat_right">
+                            <div className="chat_right_content">
+                                <Avatar
+                                    className="right_avatar"
+                                    src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}
+                                    gap={3}
+                                    size={"large"}
                                 />
-                            </li>
-                        </ul>
-                    </div>
-
-                    <Sider onWheel={e => this.sideMouseUpEvent(e)} id={"side-bar"} theme={"light"}>
-                        {
-                            this.state['searchBarVisible'] &&
-                            <div className={"room-list-bar"}>
-                                <Input prefix={<SearchOutlined/>}/>
+                                <div className="chat_right_time">
+                                    2023-10-11 12:12:13
+                                </div>
+                                <div className="chat_right_msg">
+                                    <div>
+                                        <p>
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                        </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                    </div>
+                                </div>
                             </div>
-                        }
-                        <List className={"room-list"} itemLayout={"horizontal"}>
-                            {this.roomList}
-                        </List>
-                    </Sider>
-                    <Layout>
-                        <Header className={"room-header"}></Header>
-                        <Content id={"chatContent"}>
-                            <div className="more-msg"></div>
-                            <div className="message chat_right">
-                                <div className="chat_right_content">
-                                    <Avatar
-                                        className="right_avatar"
-                                        src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}
+                        </div>
+
+                        <div className={"message chat_left"}>
+                            <div className={"chat_left_content"}>
+                                <Avatar className={"left_avatar"}
                                         gap={3}
-                                        size={"large"}
-                                    />
-                                    <div className="chat_right_time">
-                                        2023-10-11 12:12:13
-                                    </div>
-                                    <div className="chat_right_msg">
-                                        <div>
-                                            <p>
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                            </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                        </div>
+                                        size={"large"}>
+                                    Tauri
+                                </Avatar>
+                                <div className={"chat_left_time"}>
+                                    2023-10-11 12:12:13
+                                </div>
+                                <div className={"chat_left_msg"}>
+                                    <div>
+                                        <p>
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                            Message .... Message ....
+                                        </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
+                                        <p> Message .... Message .... </p>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div className={"message chat_left"}>
-                                <div className={"chat_left_content"}>
-                                    <Avatar className={"left_avatar"}
-                                            gap={3}
-                                            size={"large"}>
-                                        Tauri
-                                    </Avatar>
-                                    <div className={"chat_left_time"}>
-                                        2023-10-11 12:12:13
-                                    </div>
-                                    <div className={"chat_left_msg"}>
-                                        <div>
-                                            <p>
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                                Message .... Message ....
-                                            </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                            <p> Message .... Message .... </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </Content>
+                    </Content>
+                    <Resizable
+                        defaultSize={{
+                            height: 200
+                        }}
+                        handleClasses={{top: 'resize-div'}}
+                        minHeight={300}
+                        maxHeight={"70%"}
+                        enable={{top: true, right: false, bottom: false, left: false, topRight: false, bottomRight: false, bottomLeft: false, topLeft: false}}
+                    >
                         <Footer id={"footer"}>
-                            <div>
-                                <p>footer</p>
-                                <p>footer</p>
-                                <p>footer</p>
-                                <p>footer</p>
-                                <p>footer</p>
-                                <p>footer</p>
-                                <p>footer</p>
-                                <p>footer</p>
-                            </div>
-
+                            <TextArea classNames={"input-area"}/>
                         </Footer>
-                    </Layout>
+                    </Resizable>
                 </Layout>
-            </>
-        );
-    }
+            </Layout>
+        </>
+    );
 }
