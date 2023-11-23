@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {Avatar, Button, Input, Layout, List} from "antd";
 import Sider from "antd/es/layout/Sider";
 import {Content, Footer, Header} from "antd/es/layout/layout";
@@ -7,12 +7,20 @@ import {SearchOutlined} from "@ant-design/icons";
 import {Resizable} from "re-resizable";
 import VditorEdit from "../../components/VditorEdit";
 import Vditor from "vditor";
-import {emit} from "@tauri-apps/api/event";
+import {emit, listen} from "@tauri-apps/api/event";
 
 export function ChatComponent() {
 
     const [searchBarVisible, setSearchBarVisible] = useState(false);
     const [vditor, setVditor] = useState<Vditor>();
+
+    useEffect(() => {
+        console.log(111)
+        listen('msg_read', (event) => {
+            console.log("Get Msg --> ")
+            console.log(event.payload);
+        }).then();
+    }, []);
 
     const list: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 

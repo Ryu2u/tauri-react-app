@@ -1,4 +1,4 @@
-import {Component, useEffect} from "react";
+import {Component, useEffect, useState} from "react";
 import "./AdminComponent.scss"
 import {Outlet, useNavigate} from "react-router";
 import {CloseOutlined, FullscreenOutlined, MinusOutlined, SettingOutlined} from "@ant-design/icons";
@@ -13,8 +13,8 @@ export function AdminComponent() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        console.log("connecting to websocket")
-        invoke('connect_websocket', {}).then();
+            console.log("connecting to websocket")
+            invoke('connect_websocket', {}).then();
     });
 
     function closeClick() {
