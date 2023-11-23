@@ -19,8 +19,8 @@ export function LoginComponent() {
     function finished(value: any) {
         console.log("value ");
         console.log(value);
-        invoke('route_to_admin', {}).then(v => {
-        });
+        invoke('rsa_gen',{}).then();
+        // invoke('route_to_admin', {}).then();
     }
 
         return (

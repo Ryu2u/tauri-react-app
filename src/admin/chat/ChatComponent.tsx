@@ -15,7 +15,6 @@ export function ChatComponent() {
     const [vditor, setVditor] = useState<Vditor>();
 
     useEffect(() => {
-        console.log(111)
         listen('msg_read', (event) => {
             console.log("Get Msg --> ")
             console.log(event.payload);
@@ -24,7 +23,7 @@ export function ChatComponent() {
 
     const list: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-    function sideMouseUpEvent(event: React.WheelEvent<HTMLDivElement>) {
+    function sideMouseUpEvent(event: WheelEvent<HTMLDivElement>) {
         const sidebar = document.getElementById("side-bar")!;
         if (sidebar) {
             if (sidebar.scrollTop == 0) {
@@ -36,7 +35,7 @@ export function ChatComponent() {
     }
 
     function sendMsg() {
-        let html = vditor.getHTML();
+        const html = vditor!.getHTML()!;
         if (!html || html == "") {
             return;
         }

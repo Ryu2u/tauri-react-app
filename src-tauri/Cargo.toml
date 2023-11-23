@@ -27,6 +27,9 @@ url = "2.3.1"
 protobuf = "3.3.0"
 window-shadows = "0.2.2"
 reqwest = "0.11.14"
+rsa = "0.9.4"
+rand = "0.8.5"
+base64 = "0.21.5"
 
 [dependencies.entity]
 path = "./entity"

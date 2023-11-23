@@ -5,24 +5,26 @@ pub mod ws {
     use tokio_tungstenite::{
         tungstenite::Result,
     };
-    use tokio_tungstenite::tungstenite::client::IntoClientRequest;
     use entity::chat_message_pack::Obj;
     use entity::{ChatMessagePack, LoginMessage, MsgType, ProstMessage};
-    use crate::{system_tray_flicker, WsConnectFlag};
+    use crate::{ConnectedEnum, system_tray_flicker, WsConnectFlag};
 
     #[tauri::command]
     pub async fn connect_websocket(app_handle: AppHandle<Wry>, state: State<'_, WsConnectFlag>) -> tauri::Result<()> {
         if let Ok(mut guard) = state.connected.lock() {
-            if *guard == "OK" {
+            if let ConnectedEnum::YES =  *guard  {
+                println!("WebSocket is connected");
                 return Ok(());
-            } else {
-                *guard = "OK".to_string();
             }
+        } else {
+            panic!("can't get connected lock")
         }
         connect_ws_async(&app_handle, state).await.unwrap();
         Ok(())
     }
 
+
+    /// 连接websocket 主要函数
     async fn connect_ws_async(app_handle: &AppHandle<Wry>, state: State<'_, WsConnectFlag>) -> Result<()> {
         use url::Url;
         use futures_util::{StreamExt};
@@ -39,6 +41,16 @@ pub mod ws {
 
         let (ws_stream, _) = match connect_response {
             Ok(ws, ..) => {
+                if let Ok(mut guard) = state.connected.lock() {
+                    if let  ConnectedEnum::YES = *guard   {
+                        println!("WebSocket is connected");
+                        return Ok(());
+                    } else {
+                        *guard = ConnectedEnum::YES;
+                    }
+                } else {
+                    panic!("can't get connected lock")
+                }
                 ws
             }
             Err(_) => {
@@ -69,7 +81,8 @@ pub mod ws {
         let handle_read = app_handle.clone();
 
         // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
-        let _event = handle_write.listen_global("msg_send", move |event: Event| {
+        let event = handle_write.listen_global("msg_send", move |event: Event| {
+            println!("GOT Front msg!");
             let msg = event.payload().unwrap();
             let mutex_write = mutex_write.clone();
             block_in_place(move || {
@@ -96,7 +109,6 @@ pub mod ws {
             });
         });
 
-
         let guard = state.connected.clone();
         // 异步任务，循环读
         tokio::spawn(async move {
@@ -114,8 +126,11 @@ pub mod ws {
                         handle_read.emit_all("msg_read", obj).expect("read msg failed");
                     }
                 } else {
-                    let mut flag = guard.lock().unwrap();
-                    *flag = "NO".to_string();
+                    {
+                        let mut flag = guard.lock().unwrap();
+                        *flag = ConnectedEnum::NO;
+
+                    }
                     panic!("websocket is closed");
                 }
             }

@@ -18,8 +18,11 @@ use dotenv::dotenv;
 mod command;
 mod ws;
 
+mod http;
+
 use ws::connect_websocket;
 use command::{greet, route_to_admin, back_to_login};
+use http::{login,rsa_gen};
 
 use tokio_tungstenite::{
     tungstenite::Result,
@@ -29,8 +32,13 @@ async fn send_http() -> Result<()> {
     Ok(())
 }
 
+pub enum ConnectedEnum {
+    YES,
+    NO,
+}
+
 pub struct WsConnectFlag {
-    connected: Arc<Mutex<String>>
+    connected: Arc<Mutex<ConnectedEnum>>,
 }
 
 
@@ -40,40 +48,13 @@ async fn main() {
     // 加载配置文件
     dotenv().ok();
 
-    // 创建托盘菜单
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(CustomMenuItem::new("hide", "最小化"))
-        .add_item(CustomMenuItem::new("quit", "退出"));
-
     // 创建系统托盘
-    let tray = SystemTray::default()
-        // 添加菜单
-        .with_menu(tray_menu)
-        // 添加托盘鼠标放上去显示的文字
-        .with_tooltip("Chat");
+    let tray = create_system_tray();
 
-    let quit = CustomMenuItem::new("quit", "退出");
-    let hide = CustomMenuItem::new("hide", "最小化");
-    let add_window = CustomMenuItem::new("add", "新增窗口");
-    let submenu_window = Submenu::new("window", Menu::new()
-        .add_item(add_window)
-        .add_item(hide)
-        .add_item(quit));
+    // 创建系统菜单
+    let menu = create_system_menu();
 
-    let submenu_file = Submenu::new("file", Menu::new()
-        .add_item(CustomMenuItem::new("open", "打开文件")),
-    );
-
-    let submenu_tab = Submenu::new("tab", Menu::new()
-        .add_item(CustomMenuItem::new("gpt", "ChatGPT"))
-        .add_item(CustomMenuItem::new("bing", "Bing")),
-    );
-
-    let menu = Menu::new()
-        .add_submenu(submenu_file)
-        .add_submenu(submenu_tab)
-        .add_submenu(submenu_window);
-
+    // 设置tauri 运行时
     tauri::async_runtime::set(tokio::runtime::Handle::current());
 
     // 配置Tauri
@@ -83,20 +64,21 @@ async fn main() {
             let window = app_handle.get_window("login").unwrap();
             set_shadow(&window, true).unwrap();
             let ws_connect_flag = WsConnectFlag {
-                connected: Arc::new(Mutex::new("NO".to_string()))
+                connected: Arc::new(Mutex::new(ConnectedEnum::NO))
             };
             app_handle.manage(ws_connect_flag);
-
             Ok(())
         })
         .menu(menu)
         .on_menu_event(|event| menu_event_handle(event))
         // 配置rust指令，可以让前端调用
         .invoke_handler(tauri::generate_handler![
-      greet,
+            greet,
       route_to_admin,
       back_to_login,
-      connect_websocket
+      connect_websocket,
+            login,
+            rsa_gen
     ])
         // 配置系统托盘
         .system_tray(tray)
@@ -277,4 +259,44 @@ fn system_tray_flicker(app_handle: &AppHandle<Wry>) {
             }
         }
     });
+}
+
+fn create_system_tray() -> SystemTray {
+    // 创建托盘菜单
+    let tray_menu = SystemTrayMenu::new()
+        .add_item(CustomMenuItem::new("hide", "最小化"))
+        .add_item(CustomMenuItem::new("quit", "退出"));
+    // 创建系统托盘
+    let tray = SystemTray::default()
+        // 添加菜单
+        .with_menu(tray_menu)
+        // 添加托盘鼠标放上去显示的文字
+        .with_tooltip("Chat");
+    tray
+}
+
+fn create_system_menu() -> Menu {
+    let quit = CustomMenuItem::new("quit", "退出");
+    let hide = CustomMenuItem::new("hide", "最小化");
+    let add_window = CustomMenuItem::new("add", "新增窗口");
+    let submenu_window = Submenu::new("window", Menu::new()
+        .add_item(add_window)
+        .add_item(hide)
+        .add_item(quit));
+
+    let submenu_file = Submenu::new("file", Menu::new()
+        .add_item(CustomMenuItem::new("open", "打开文件")),
+    );
+
+    let submenu_tab = Submenu::new("tab", Menu::new()
+        .add_item(CustomMenuItem::new("gpt", "ChatGPT"))
+        .add_item(CustomMenuItem::new("bing", "Bing")),
+    );
+
+    let menu = Menu::new()
+        .add_submenu(submenu_file)
+        .add_submenu(submenu_tab)
+        .add_submenu(submenu_window);
+
+    menu
 }
