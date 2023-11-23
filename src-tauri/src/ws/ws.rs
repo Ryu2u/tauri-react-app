@@ -11,11 +11,6 @@ pub mod ws {
 
   #[tauri::command]
   pub async fn connect_websocket(app_handle: AppHandle<Wry>) -> String {
-    // if let Ok(_) = connect_websocket(&app_handle).await {
-    //   format!("Ok")
-    // } else {
-    //   format!("Err")
-    // }
     connect_ws_async(&app_handle).await.unwrap();
     format!("Ok")
   }
@@ -82,7 +77,11 @@ pub mod ws {
           pack.encode(&mut buf).unwrap();
           println!("{:?}", buf);
           // 发送消息
-          mutex_write.lock().await.send(Message::binary(buf)).await.unwrap();
+          if let Ok(_) = mutex_write.lock().await.send(Message::binary(buf)).await {
+            println!("发送成功!");
+          }else{
+            println!("发送失败!");
+          }
         });
       });
     });

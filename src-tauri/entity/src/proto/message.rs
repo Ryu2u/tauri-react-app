@@ -119,13 +119,8 @@ pub struct ChatMessage {
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
     /// 聊天室id
-    #[prost(string, tag = "2")]
-    pub chat_room_id: ::prost::alloc::string::String,
-    /// *
-    /// 0: 为闲聊消息(默认)
-    /// 1: 为任务消息(需要显示已读确认按钮，并且发送者可以看见哪些人已读)
-    #[prost(int32, tag = "3")]
-    pub message_type: i32,
+    #[prost(int32, tag = "2")]
+    pub chat_room_id: i32,
     /// 消息发送者
     #[prost(int32, tag = "4")]
     pub sender_id: i32,

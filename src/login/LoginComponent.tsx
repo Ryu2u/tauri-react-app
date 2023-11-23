@@ -4,31 +4,32 @@ import {CloseOutlined, LockOutlined, MinusOutlined, UserOutlined} from "@ant-des
 import {Avatar, Button, Checkbox, Form, Input} from "antd";
 import {appWindow} from "@tauri-apps/api/window";
 import {invoke} from "@tauri-apps/api";
+import {useNavigate} from "react-router";
 
-export class LoginComponent extends Component {
+export function LoginComponent() {
 
-    closeClick() {
+    function closeClick() {
         appWindow.minimize().then();
     }
 
-    quickClick() {
+    function quickClick() {
         appWindow.hide().then();
     }
 
-    finished(value: any) {
+    function finished(value: any) {
         console.log("value ");
         console.log(value);
-        invoke('route_to_admin', {}).then();
+        invoke('route_to_admin', {}).then(v => {
+        });
     }
 
-    render() {
         return (
             <>
                 <div data-tauri-drag-region className={"title-bar flex"}>
-                    <div className={"btn-group close"} onClick={this.closeClick}>
+                    <div className={"btn-group close"} onClick={closeClick}>
                         <MinusOutlined/>
                     </div>
-                    <div className={"btn-group quit"} onClick={this.quickClick}>
+                    <div className={"btn-group quit"} onClick={quickClick}>
                         <CloseOutlined/>
                     </div>
                 </div>
@@ -40,7 +41,7 @@ export class LoginComponent extends Component {
                     <div className={"input-div"}>
                         <Form className="login-form"
                               initialValues={{remember: true}}
-                              onFinish={this.finished}
+                              onFinish={finished}
                         >
                             <Form.Item
                                 name="username"
@@ -78,5 +79,4 @@ export class LoginComponent extends Component {
                 </div>
             </>
         );
-    }
 }

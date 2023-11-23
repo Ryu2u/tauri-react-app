@@ -34,7 +34,9 @@
   max-height: 30px;
   width: 100%;
   justify-content: right;
-  background-color: #15bbec;
+  //background-color: #15bbec;
+  background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+  z-index: 9999;
 }
 
 .title-bar:hover{
@@ -61,3 +63,25 @@
   background-color: #4F7cff;
 }
 
+
+.admin-tool-bar{
+  position: fixed;
+  padding-top: 30px;
+  height: 100%;
+  width: 40px;
+  cursor: default;
+  float: left;
+  ul {
+    padding: 0;
+    list-style: none;
+    margin: 0;
+    li {
+      padding: 10px;
+    }
+    li:hover {
+      background-color: #e5f1ff;
+      cursor: pointer;
+    }
+  }
+
+}

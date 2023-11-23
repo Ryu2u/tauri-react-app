@@ -80,13 +80,9 @@ message ChatMessage{
   string id = 1;
 
   // 聊天室id
-  string chatRoomId = 2;
+  int32 chatRoomId = 2;
 
-  /**
-   * 0: 为闲聊消息(默认)
-   * 1: 为任务消息(需要显示已读确认按钮，并且发送者可以看见哪些人已读)
-   */
-  int32 messageType = 3;
+  reserved 3;
 
   // 消息发送者
   int32 senderId = 4;
