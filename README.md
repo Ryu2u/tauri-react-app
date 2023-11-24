@@ -8,6 +8,12 @@
 
 后端服务器为Java SpringBoot + Netty，SpringBoot用来接收Http响应，Netty用于WebSocket连接
 
+Cargo版本:  `cargo 1.76.0-nightly (6790a5127 2023-11-10)`
+
+React版本:  `^18.2.38`
+
+Java版本:  `Java8`
+
 #### 已开发的功能
 
 - [x] 前端react页面的编写(一开始使用的前端框架为Angular，后来看着React不错，正好一起学学,把前端的代码使用React重构了下)
