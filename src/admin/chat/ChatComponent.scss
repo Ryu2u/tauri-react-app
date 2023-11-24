@@ -97,12 +97,12 @@ nz-breadcrumb {
   position: absolute;
   content: "";
   display: block;
-  width: 20px;
-  height: 6px;
-  background-color: black;
+  width: 1.5rem;
+  height: 0.25rem;
+  background-color: rgb(43 121 233);
   right: 50%;
   top: -3px;
-  border-radius: 10px;
+  border-radius: 6px;
 }
 
 .resize-div {
