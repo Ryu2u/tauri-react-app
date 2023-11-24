@@ -11,7 +11,7 @@ pub mod ws {
 
     #[tauri::command]
     pub async fn connect_websocket(app_handle: AppHandle<Wry>, state: State<'_, WsConnectFlag>) -> tauri::Result<()> {
-        if let Ok(mut guard) = state.connected.lock() {
+        if let Ok(guard) = state.connected.lock() {
             if let ConnectedEnum::YES =  *guard  {
                 println!("WebSocket is connected");
                 return Ok(());
@@ -81,7 +81,7 @@ pub mod ws {
         let handle_read = app_handle.clone();
 
         // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
-        let event = handle_write.listen_global("msg_send", move |event: Event| {
+        let _event = handle_write.listen_global("msg_send", move |event: Event| {
             println!("GOT Front msg!");
             let msg = event.payload().unwrap();
             let mutex_write = mutex_write.clone();

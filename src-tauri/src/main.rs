@@ -22,21 +22,17 @@ mod http;
 
 use ws::connect_websocket;
 use command::{greet, route_to_admin, back_to_login};
-use http::{login,rsa_gen};
+use http::{login, get_user_info};
 
-use tokio_tungstenite::{
-    tungstenite::Result,
-};
-
-async fn send_http() -> Result<()> {
-    Ok(())
-}
 
 pub enum ConnectedEnum {
     YES,
     NO,
 }
 
+/// 保存于 Tauri State 中
+/// 用于判断当前WebSocket是否已经在连接中
+/// 防止重复调用
 pub struct WsConnectFlag {
     connected: Arc<Mutex<ConnectedEnum>>,
 }
@@ -44,13 +40,10 @@ pub struct WsConnectFlag {
 
 #[tokio::main]
 async fn main() {
-
     // 加载配置文件
     dotenv().ok();
-
     // 创建系统托盘
     let tray = create_system_tray();
-
     // 创建系统菜单
     let menu = create_system_menu();
 
@@ -78,7 +71,7 @@ async fn main() {
       back_to_login,
       connect_websocket,
             login,
-            rsa_gen
+            get_user_info
     ])
         // 配置系统托盘
         .system_tray(tray)
