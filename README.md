@@ -4,6 +4,8 @@
 
 该项目仅作为Rust学习项目
 
+前端使用Rust Tauri桌面框架，类似于Electron，但是体积没有那么大， 在Rust端处理WebSocket，http，加密解密，前端仅作为数据展示的功能，以便后续更换前端框架
+
 后端服务器为Java SpringBoot + Netty，SpringBoot用来接收Http响应，Netty用于WebSocket连接
 
 #### 已开发的功能
