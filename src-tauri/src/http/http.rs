@@ -289,7 +289,7 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
         }
 
         #[test]
-        fn encode_and_code() {
+        fn encode_and_decode() {
             use base64::{Engine, engine::general_purpose};
             use rsa::{RsaPrivateKey, RsaPublicKey, Pkcs1v15Encrypt};
             use rand::thread_rng;
