@@ -1,30 +1,37 @@
 pub mod http {
     use std::collections::HashMap;
     use std::env;
-    use std::fmt::format;
+    use std::fmt::{Debug, format};
     use std::fs::File;
     use std::io::Read;
     use base64::Engine;
     use reqwest::{Error, header, Response};
     use rsa::{RsaPrivateKey};
     use serde::de::DeserializeOwned;
-    use serde::Serialize;
-    use tauri::{AppHandle, Manager, State, Wry};
+    use serde::{Deserialize, Serialize};
+    use tauri::{App, AppHandle, Manager, State, Wry};
     use tauri::Error::{CreateWindow, Runtime};
+    use crate::back_to_login;
     use crate::http::structs::structs::{AuthHeader, HttpResult};
     use crate::http::{HttpError, User};
 
+    const AUTH_HEADER: &str = "Authorization";
+    const TOKEN_BEARER: &str = "Bearer ";
+
     /// 用户当前登录用户具体信息
     #[tauri::command]
-    pub async fn get_user_info(state: State<'_, AuthHeader>) -> Result<HttpResult<User>, HttpError> {
+    pub async fn get_user_info(state: State<'_, AuthHeader>, app_handle: AppHandle<Wry>) ->
+    Result<HttpResult<User>, HttpError> {
         let token = state.Authorization.clone();
         println!("token : {}", token);
 
-        match http_get::<User>("/user/info".to_string(), state).await {
+        match http_get::<User>("/user/info".to_string(), state, app_handle).await {
             Ok(res) => {
+                println!("{:?}", res);
                 Ok(res)
             }
             Err(e) => {
+                println!("Errrrrr");
                 Err(e)
             }
         }
@@ -32,7 +39,7 @@ pub mod http {
 
     /// 登录接口
     #[tauri::command]
-    pub async fn login(username: &str, password: &str, app_handle: AppHandle<Wry>) -> Result<HttpResult<()>,HttpError> {
+    pub async fn login(username: &str, password: &str, app_handle: AppHandle<Wry>) -> Result<HttpResult<()>, HttpError> {
         let username = username.as_bytes();
         let password = password.as_bytes();
 
@@ -47,17 +54,20 @@ pub mod http {
         map.insert("password", password);
         map.insert("publicKey", public_key);
 
-        let res = http_post_no_auth::<AuthHeader,HashMap<&str,String>>("/login".to_string(),&map)
+        let res = http_post_no_auth::<AuthHeader, HashMap<&str, String>>("/login".to_string(),
+                                                                         &map, app_handle.clone())
             .await;
         match res {
             Ok(result) => {
-                    let auth = result.data.clone();
-                    println!("{:?}", auth);
-                    app_handle.manage(auth);
-                let result = HttpResult{
+                let auth = result.data.clone();
+                println!("{:?}", auth);
+                if let Some(mut data) = auth {
+                    app_handle.manage(data);
+                }
+                let result = HttpResult {
                     code: result.code,
                     msg: result.msg,
-                    data: None
+                    data: None,
                 };
                 Ok(result)
             }
@@ -65,14 +75,14 @@ pub mod http {
                 println!("Http Err");
                 if let HttpError::RequestError(status) = e {
                     let code = status.as_u16();
-                    println!("{}",code);
-                    let result = HttpResult{
+                    println!("{}", code);
+                    let result = HttpResult {
                         code: code as i32,
                         msg: "".to_string(),
-                        data: None
+                        data: None,
                     };
                     Ok(result)
-                }else{
+                } else {
                     Err(e)
                 }
             }
@@ -97,6 +107,7 @@ pub mod http {
     }
 
     /// 使用后端公钥加密需要发送给后端的内容
+    /// 返回的String 为base64 加密后的字符串
     pub fn encode_msg(raw_str: &[u8]) -> String {
         use base64::engine::general_purpose;
         use rsa::{Pkcs1v15Encrypt, RsaPublicKey};
@@ -117,6 +128,7 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
     }
 
     /// 使用本地私钥解密后端加密的内容
+    /// msg 为base64 加密后的字符串
     pub fn decode_msg(msg: &str) -> String {
         use base64::engine::general_purpose;
         use rsa::{Pkcs1v15Encrypt};
@@ -143,73 +155,94 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
     }
 
     /// Http Get 请求接口 返回json格式
-    async fn http_get<T: DeserializeOwned>(path: String, state: State<'_, AuthHeader>) -> Result<HttpResult<T>, HttpError> {
+    async fn http_get<T: DeserializeOwned>(path: String, state: State<'_, AuthHeader>,
+                                           app_handle: AppHandle<Wry>)
+                                           ->
+                                           Result<HttpResult<T>, HttpError> {
         let token = state.Authorization.clone();
         let client = reqwest::Client::new();
         let url = format!("http://localhost:9090{}", path);
         let res = client.get(url)
-            .header("Authorization", format!("Bearer {}", token))
+            .header(AUTH_HEADER, format!("{}{}", TOKEN_BEARER, token))
             .send().await;
 
-        handle_response(res).await
+        handle_response(res, app_handle).await
     }
 
 
     /// Http Post 请求接口 返回json格式
-    async fn http_post<T: DeserializeOwned,E: Serialize + ?Sized>(path: String, state: State<'_, AuthHeader>,json: &E) ->
-                                                                                         Result<HttpResult<T>, HttpError> {
+    async fn http_post<T: DeserializeOwned, E: Serialize + ?Sized>(path: String, state: State<'_,
+        AuthHeader>, json: &E, app_handle: AppHandle<Wry>) ->
+                                                                   Result<HttpResult<T>, HttpError> {
         let token = state.Authorization.clone();
         let client = reqwest::Client::new();
         let host = env::var("HTTP_URL").expect("env file don't exists HTTP_URL");
         let url = format!("{}{}", host, path);
         let res = client.post(url)
-            .header("Authorization", format!("Bearer {}", token))
+            .header(AUTH_HEADER, format!("{}{}", TOKEN_BEARER, token))
             .json(json)
             .send().await;
 
-        handle_response(res).await
+        handle_response(res, app_handle).await
     }
 
-    async fn http_post_no_auth<T: DeserializeOwned,E: Serialize + ?Sized>(path: String ,json:&E) ->
+    async fn http_post_no_auth<T: DeserializeOwned, E: Serialize + ?Sized>(path: String, json: &E, app_handle: AppHandle<Wry>) ->
     Result<HttpResult<T>, HttpError> {
         let client = reqwest::Client::new();
         let host = env::var("HTTP_URL").expect("env file don't exists HTTP_URL");
         let url = format!("{}{}", host, path);
         let res = client.post(url)
-            .header(header::ACCEPT,"application/json")
-            .header(header::CONTENT_TYPE,"application/json")
+            .header(header::ACCEPT, "application/json")
+            .header(header::CONTENT_TYPE, "application/json")
             .json(json)
             .send().await;
-
-        handle_response(res).await
+        handle_response(res, app_handle).await
     }
 
 
-    async fn handle_response<T: DeserializeOwned>(res: Result<Response, Error>) -> Result<HttpResult<T>,HttpError>{
+    async fn handle_response<T: DeserializeOwned>(res: Result<Response, Error>, app_handle: AppHandle<Wry>) -> Result<HttpResult<T>, HttpError> {
         match res {
             Ok(response) => {
-                        let json = response.json::<HttpResult<T>>().await;
-                        if let Ok(data) = json {
-                            Ok(data)
-                        } else {
-                            Err(HttpError::CustomError("Error".to_string()))
+                let json = response.json::<HttpResult<T>>().await;
+                if let Ok(data) = json {
+                    println!("http code : {:?}", data.code);
+                    if data.code == 403 {
+                        let windows = app_handle.clone().windows();
+                        for key in windows.keys() {
+                            let app_clone = app_handle.clone();
+                            let window_opt = windows.get(key);
+                            if let Some(window) = window_opt {
+                                tauri::api::dialog::confirm(Some(&window), "Tauri", "令牌已过期，请重新登录!",
+                                                            move
+                                                                |answer| {
+                                                                back_to_login(app_clone);
+                                                            });
+                            }
                         }
+                    }
+                    Ok(data)
+                } else {
+                    Err(HttpError::CustomError("Error".to_string()))
+                }
             }
             Err(e) => {
-                    Err(HttpError::CustomError("http error".to_string()))
+                Err(HttpError::CustomError("http error".to_string()))
             }
         }
     }
 
     #[cfg(test)]
     mod test {
+        use crate::http::{decode_msg, encode_msg, get_public_key};
+
         #[test]
         fn tes_rsa_key() {
             use rsa::{RsaPrivateKey, RsaPublicKey, Pkcs1v15Encrypt};
+            use rsa::pkcs8::{DecodePublicKey, EncodePublicKey, EncodePrivateKey};
             use rand::thread_rng;
             use std::path::Path;
             use rsa::pkcs1::LineEnding;
-            use base64::{engine::general_purpose};
+            use base64::{Engine, engine::general_purpose};
 
             let mut rng = rand::thread_rng();
             let bits = 1024;
@@ -219,9 +252,10 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
             let result = public_key.to_public_key_pem(LineEnding::CRLF).unwrap();
             let res2 = private_key.to_pkcs8_pem(LineEnding::CRLF).unwrap();
 
-            public_key.write_public_key_pem_file(Path::new("C:/Users/Administrator/Desktop/public_key.txt"),
-                                                 LineEnding::CRLF).unwrap();
-            private_key.write_pkcs8_pem_file(Path::new("C:/Users/Administrator/Desktop/private_key.txt"), LineEnding::CRLF).unwrap();
+            /// 将生成的公钥写入指定的文件
+            // public_key.write_public_key_pem_file(Path::new("C:/Users/Administrator/Desktop/public_key.txt"), LineEnding::CRLF).unwrap();
+            /// 将生成的秘钥写入指定的文件
+            // private_key.write_pkcs8_pem_file(Path::new("C:/Users/Administrator/Desktop/private_key.txt"), LineEnding::CRLF).unwrap();
 
             println!("result1 : {:?}", result);
             println!("result2 : {:?}", res2.as_str());
@@ -232,7 +266,7 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
 
             let encode_str = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, raw_str).unwrap();
 
-            let base64_encode = general_purpose::STANDARD_NO_PAD.encode(encode_str.clone());
+            let base64_encode = general_purpose::STANDARD.encode(encode_str.clone());
 
             println!("{:?}", base64_encode);
 
@@ -246,7 +280,7 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
 
             println!("{:?}", str);
 
-            let vec = general_purpose::STANDARD_NO_PAD.decode(base64_encode).unwrap();
+            let vec = general_purpose::STANDARD.decode(base64_encode).unwrap();
             assert_eq!(vec, encode_str);
 
             let decode_str = private_key.decrypt(Pkcs1v15Encrypt, &vec).unwrap();
@@ -256,34 +290,27 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
 
         #[test]
         fn encode_and_code() {
-            use base64::{engine::general_purpose};
+            use base64::{Engine, engine::general_purpose};
             use rsa::{RsaPrivateKey, RsaPublicKey, Pkcs1v15Encrypt};
             use rand::thread_rng;
             use rsa::pkcs1::LineEnding;
+            use rsa::pkcs8::{DecodePublicKey, EncodePublicKey};
+            use std::fs::File;
+            use std::io::Read;
+
+            let mut file: File = File::open("public_key.txt").unwrap();
+            let mut public_key = String::new();
+            file.read_to_string(&mut public_key).expect("can't read file");
+            let local_public_key = RsaPublicKey::from_public_key_pem(&public_key).unwrap();
 
             let mut rng = rand::thread_rng();
+            let raw_string = "admin".to_string();
             let raw_str = b"admin";
-            let encode_str = public_key.encrypt(&mut rng, Pkcs1v15Encrypt, raw_str).unwrap();
-
-            let base64_encode = general_purpose::STANDARD_NO_PAD.encode(encode_str.clone());
-
+            let encode_str = local_public_key.encrypt(&mut rng, Pkcs1v15Encrypt, raw_str).unwrap();
+            let base64_encode = general_purpose::STANDARD.encode(encode_str);
             println!("{:?}", base64_encode);
-
-            let decode_str = private_key.decrypt(Pkcs1v15Encrypt, &encode_str).unwrap();
-
-            println!("{:?}", &decode_str[..]);
-            println!("{:?}", &raw_str[..]);
-
-            let str = String::from_utf8(decode_str.clone());
-
-            println!("{:?}", str);
-
-            let vec = general_purpose::STANDARD_NO_PAD.decode(base64_encode).unwrap();
-            assert_eq!(vec, encode_str);
-
-            let decode_str = private_key.decrypt(Pkcs1v15Encrypt, &vec).unwrap();
-            let str = String::from_utf8(decode_str.clone());
-            println!("{:?}", str);
+            let decode_str = decode_msg(&base64_encode);
+            assert_eq!(raw_string, decode_str);
         }
     }
 }

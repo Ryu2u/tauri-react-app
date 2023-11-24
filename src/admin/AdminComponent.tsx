@@ -13,8 +13,8 @@ export function AdminComponent() {
     const navigate = useNavigate();
 
     useEffect(() => {
-            console.log("connecting to websocket")
-            invoke('connect_websocket', {}).then();
+        console.log("connecting to websocket")
+        invoke('connect_websocket', {}).then();
     });
 
     function closeClick() {
@@ -36,6 +36,9 @@ export function AdminComponent() {
     }
 
     function routeToChat() {
+        invoke('get_user_info', {}).then(v => {
+            console.log(v);
+        });
         navigate('/admin/chat');
     }
 

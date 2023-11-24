@@ -1,9 +1,9 @@
 pub mod structs {
-    use std::fmt::{Display, Formatter, write};
+    use std::fmt::{Debug, Display, Formatter, write};
     use reqwest::StatusCode;
     use serde::{Deserialize, Serialize};
 
-    // create the error type that represents all errors possible in our program
+    /// 自定义Http异常
     #[derive(Debug)]
     pub enum HttpError {
         CustomError(String),
@@ -72,5 +72,4 @@ pub mod structs {
         createdBy: i32,
         createdTime: i64,
     }
-
 }
