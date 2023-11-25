@@ -10,10 +10,9 @@ pub mod http {
     use serde::de::DeserializeOwned;
     use serde::{Deserialize, Serialize};
     use tauri::{App, AppHandle, Manager, State, Wry};
-    use tauri::Error::{CreateWindow, Runtime};
     use crate::back_to_login;
     use crate::http::structs::structs::{AuthHeader, HttpResult};
-    use crate::http::{HttpError, User};
+    use crate::http::{ChatRoom, HttpError, User};
 
     const AUTH_HEADER: &str = "Authorization";
     const TOKEN_BEARER: &str = "Bearer ";
@@ -204,32 +203,73 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
         match res {
             Ok(response) => {
                 let json = response.json::<HttpResult<T>>().await;
-                if let Ok(data) = json {
-                    println!("http code : {:?}", data.code);
-                    if data.code == 403 {
-                        let windows = app_handle.clone().windows();
-                        for key in windows.keys() {
-                            let app_clone = app_handle.clone();
-                            let window_opt = windows.get(key);
-                            if let Some(window) = window_opt {
-                                tauri::api::dialog::confirm(Some(&window), "Tauri", "令牌已过期，请重新登录!",
-                                                            move
-                                                                |answer| {
-                                                                back_to_login(app_clone);
-                                                            });
+                match json {
+                    Ok(data) => {
+                        println!("http code : {:?}", data.code);
+                        if data.code == 403 {
+                            let windows = app_handle.clone().windows();
+                            for key in windows.keys() {
+                                let app_clone = app_handle.clone();
+                                let window_opt = windows.get(key);
+                                if let Some(window) = window_opt {
+                                    tauri::api::dialog::confirm(Some(&window), "Tauri", "令牌已过期，请重新登录!",
+                                                                move
+                                                                    |answer| {
+                                                                    back_to_login(app_clone);
+                                                                });
+                                }
                             }
                         }
+                        Ok(data)
                     }
-                    Ok(data)
-                } else {
-                    Err(HttpError::CustomError("Error".to_string()))
+                    Err(e) => {
+                        println!("反序列化失败! -> {:?}",e);
+                        Err(HttpError::CustomError("Error".to_string()))
+                    }
                 }
             }
             Err(e) => {
+                println!("读取响应失败!");
                 Err(HttpError::CustomError("http error".to_string()))
             }
         }
     }
+
+
+    #[tauri::command]
+    pub async fn get_chat_room_list(state: State<'_, AuthHeader>, app_handle: AppHandle<Wry>) ->
+                                                                                              Result<HttpResult<Vec<ChatRoom>>,HttpError>{
+        match http_get::<Vec<ChatRoom>>("/chat-room/all".to_string(), state, app_handle).await {
+            Ok(res) => {
+                println!("{:?}", res);
+                Ok(res)
+            }
+            Err(e) => {
+                println!("调用失败 -> /chat-room/all");
+                Err(e)
+            }
+        }
+    }
+
+    #[tauri::command]
+    pub async fn get_room_info(roomId:String,state: State<'_, AuthHeader>, app_handle:
+    AppHandle<Wry>)
+        -> Result<HttpResult<ChatRoom>,HttpError>{
+        match http_get::<ChatRoom>(format!("/chat-room/{}",roomId), state, app_handle).await {
+            Ok(res) => {
+                println!("{:?}", res);
+                Ok(res)
+            }
+            Err(e) => {
+                println!("调用失败 -> /chat-room/{}",roomId);
+                Err(e)
+            }
+        }
+
+    }
+
+
+
 
     #[cfg(test)]
     mod test {
@@ -313,4 +353,6 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
             assert_eq!(raw_string, decode_str);
         }
     }
+
+
 }

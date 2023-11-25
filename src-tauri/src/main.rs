@@ -22,7 +22,7 @@ mod http;
 
 use ws::connect_websocket;
 use command::{greet, route_to_admin, back_to_login};
-use http::{login, get_user_info};
+use http::{login, get_user_info,get_chat_room_list,get_room_info};
 
 
 pub enum ConnectedEnum {
@@ -71,7 +71,9 @@ async fn main() {
       back_to_login,
       connect_websocket,
             login,
-            get_user_info
+            get_user_info,
+            get_chat_room_list,
+            get_room_info
     ])
         // 配置系统托盘
         .system_tray(tray)

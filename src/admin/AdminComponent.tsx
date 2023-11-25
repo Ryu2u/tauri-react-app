@@ -9,13 +9,13 @@ import {invoke} from "@tauri-apps/api";
 
 export function AdminComponent() {
 
-
     const navigate = useNavigate();
 
     useEffect(() => {
         console.log("connecting to websocket")
         invoke('connect_websocket', {}).then();
-    });
+    },[]);
+
 
     function closeClick() {
         appWindow.minimize().then();

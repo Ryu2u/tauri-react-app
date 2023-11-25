@@ -20,6 +20,7 @@ pub mod structs {
                     eprintln!("{}", e);
                 }
             }
+            println!("发生错误!");
             write!(f, "custom error")
         }
     }
@@ -72,4 +73,22 @@ pub mod structs {
         createdBy: i32,
         createdTime: i64,
     }
+
+
+    #[derive(Serialize, Deserialize, Debug)]
+    #[allow(non_snake_case)]
+    pub struct ChatRoom{
+        id:i32,
+        isGroup:bool,
+        roomName:String,
+        roomAvatar: String,
+        isTop:bool,
+        isView:bool,
+    }
+
+
+
+
+
+
 }
