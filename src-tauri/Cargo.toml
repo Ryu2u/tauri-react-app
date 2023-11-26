@@ -22,14 +22,33 @@ tokio = { version = "1.25.0", features = ["full"] }
 tauri = { version = "1.5.2", features = ["window-hide", "window-close", "window-start-dragging", "window-unmaximize", "window-maximize", "window-unminimize", "window-show", "window-minimize", "system-tray", "dialog-all", "icon-ico"] }
 rodio = "0.17.3"
 futures-util = { version = "0.3.28", default-features = false, features = ["sink", "std"] }
+# WebSocket 依赖
 tokio-tungstenite = "0.20.1"
+# Url 转换依赖
 url = "2.3.1"
+# ProtoBuf 依赖
 protobuf = "3.3.0"
+# windows 阴影依赖
 window-shadows = "0.2.2"
+# Http 依赖
 reqwest = { version = "0.11.14", features = ["json"] }
+# rsa 加密依赖
 rsa = "0.9.4"
 rand = "0.8.5"
 base64 = "0.21.5"
+
+# ORM
+#rbatis deps
+rbs = { version = "4.5"}
+rbatis = { version = "4.5"}
+rbdc-sqlite = { version = "4.5" }
+log = "0.4"
+fast_log = "1.6"
+#rbdc-mysql={version="4.5"}
+#rbdc-pg={version="4.5"}
+#rbdc-mssql={version="4.5"}
+
+
 
 [dependencies.entity]
 path = "./entity"

@@ -11,8 +11,7 @@ pub mod http {
     use serde::{Deserialize, Serialize};
     use tauri::{App, AppHandle, Manager, State, Wry};
     use crate::back_to_login;
-    use crate::http::structs::structs::{AuthHeader, HttpResult};
-    use crate::http::{ChatRoom, HttpError, User};
+    use crate::sqlite::{AuthHeader, ChatRoom, HttpError, HttpResult, User};
 
     const AUTH_HEADER: &str = "Authorization";
     const TOKEN_BEARER: &str = "Bearer ";

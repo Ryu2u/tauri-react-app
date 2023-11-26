@@ -17,8 +17,8 @@ use dotenv::dotenv;
 
 mod command;
 mod ws;
-
 mod http;
+mod sqlite;
 
 use ws::connect_websocket;
 use command::{greet, route_to_admin, back_to_login};

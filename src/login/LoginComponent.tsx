@@ -6,6 +6,8 @@ import {appWindow} from "@tauri-apps/api/window";
 import {invoke} from "@tauri-apps/api";
 import {useNavigate} from "react-router";
 import {R} from "../entity/Entity";
+import {Simulate} from "react-dom/test-utils";
+import error = Simulate.error;
 
 export function LoginComponent() {
 
@@ -31,36 +33,47 @@ export function LoginComponent() {
             content: '正在登录...',
             style: {
                 marginTop: '20px'
-            }
+            },
+            duration: 10
         });
-        invoke('login', {
-            username: username,
-            password: password
-        }).then((res: R) => {
-            console.log(res);
-            if (res.code == 200) {
-                messageApi.open({
-                    key: 'login',
-                    type: 'success',
-                    content: '登录成功!',
-                    style: {
-                        marginTop: '20px'
+            invoke('login', {
+                username: username,
+                password: password
+            }).then((res: R) => {
+                    console.log(res);
+                    if (res.code == 200) {
+                        messageApi.open({
+                            key: 'login',
+                            type: 'success',
+                            content: '登录成功!',
+                            style: {
+                                marginTop: '20px'
+                            }
+                        });
+                        setTimeout(() => {
+                            invoke('route_to_admin', {}).then();
+                        }, 500);
+                    } else {
+                        messageApi.open({
+                            key: 'login',
+                            type: 'error',
+                            content: res.msg,
+                            style: {
+                                marginTop: '20px'
+                            }
+                        });
                     }
-                });
-                setTimeout(() => {
-                    invoke('route_to_admin', {}).then();
-                }, 500);
-            } else {
+                }
+            ).catch(err => {
                 messageApi.open({
                     key: 'login',
                     type: 'error',
-                    content: res.msg,
+                    content: '登录失败',
                     style: {
                         marginTop: '20px'
                     }
                 });
-            }
-        });
+            });
     }
 
     return (
