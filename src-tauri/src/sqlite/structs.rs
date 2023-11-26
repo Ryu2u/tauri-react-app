@@ -1,5 +1,6 @@
 pub mod structs {
     use std::fmt::{Debug, Display, Formatter, write};
+    use rbatis::crud;
     use reqwest::StatusCode;
     use serde::{Deserialize, Serialize};
 
@@ -48,45 +49,64 @@ pub mod structs {
     pub struct AuthHeader {
         pub Authorization: String,
         pub refresh_token: String,
+        pub remember_me: i32,
         pub key: String,
     }
+    crud!(AuthHeader{});
+    impl_select!(AuthHeader{get_token() => "`limit 1`"});
+    impl_delete!(AuthHeader{delete_token() => "`where 1=1`"});
 
     impl Clone for AuthHeader {
         fn clone(&self) -> Self {
             AuthHeader {
                 Authorization: self.Authorization.clone(),
                 refresh_token: self.refresh_token.clone(),
+                remember_me: self.remember_me,
                 key: self.key.clone(),
             }
         }
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Clone, Serialize, Deserialize, Debug)]
     #[allow(non_snake_case)]
     pub struct User {
         id: i32,
         username: String,
         nickName: String,
-        password: String,
         avatarPath: String,
-        locked: bool,
         createdBy: i32,
         createdTime: i64,
     }
+    crud!(User{},"tb_user");
+    impl_select!(User{select_by_id(id:i32) => "`where id = #{id}`"},"tb_user");
 
 
-    #[derive(Serialize, Deserialize, Debug)]
+
+    #[derive(Clone, Serialize, Deserialize, Debug)]
     #[allow(non_snake_case)]
-    pub struct ChatRoom{
-        id:i32,
-        isGroup:bool,
-        roomName:String,
+    pub struct ChatRoom {
+        id: i32,
+        isGroup: bool,
+        roomName: String,
         roomAvatar: String,
-        isTop:bool,
-        isView:bool,
+        isTop: bool,
+        isView: bool,
     }
+    crud!(ChatRoom{},"tb_chat_room");
 
 
+    #[derive(Clone, Serialize, Deserialize, Debug)]
+    #[allow(non_snake_case)]
+    pub struct ChatMessage{
+        id:String,
+        roomId:i32,
+        senderId:i32,
+        senderName:String,
+        content:String,
+        sendTime:i64,
+        createdBy:i32,
+        createdTime:i64
+    }
 
 
 

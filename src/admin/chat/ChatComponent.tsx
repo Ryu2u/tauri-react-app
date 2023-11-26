@@ -21,17 +21,15 @@ export function ChatComponent() {
             console.log("Get Msg --> ")
             console.log(event.payload);
         }).then();
+            invoke('get_chat_room_list', {}).then((res: R) => {
+                console.log(res);
+                setRoomList(res.data);
+                console.log("roomList -> ")
+                console.log(roomList);
+            });
 
-        invoke('get_chat_room_list', {}).then((res: R) => {
-            console.log(res);
-            setRoomList(res.data);
-            console.log("roomList -> ")
-            console.log(roomList);
-        });
+    },[]);
 
-    }, []);
-
-    const list: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     function sideMouseUpEvent(event: React.WheelEvent<HTMLDivElement>) {
         const sidebar = document.getElementById("side-bar")!;

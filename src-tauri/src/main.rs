@@ -1,19 +1,23 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[macro_use]
+extern crate rbatis;
 extern crate core;
 
 use std::path::PathBuf;
 use std::thread;
 use std::thread::{sleep, spawn};
 use std::time::Duration;
-use tauri::{AppHandle, Menu, CustomMenuItem, GlobalWindowEvent, Icon, Manager, SystemTray, Submenu, SystemTrayEvent, SystemTrayMenu, WindowEvent, WindowMenuEvent, Wry};
+use tauri::{AppHandle, Menu, CustomMenuItem, GlobalWindowEvent, Icon, Manager, SystemTray, Submenu, SystemTrayEvent, SystemTrayMenu, WindowEvent, WindowMenuEvent, Wry, State};
 use window_shadows::set_shadow;
 
 use std::env;
 use std::sync::{Arc};
 use std::sync::{Mutex};
 use dotenv::dotenv;
+use rbatis::RBatis;
+use rbdc_sqlite::SqliteDriver;
 
 mod command;
 mod ws;
@@ -22,7 +26,8 @@ mod sqlite;
 
 use ws::connect_websocket;
 use command::{greet, route_to_admin, back_to_login};
-use http::{login, get_user_info,get_chat_room_list,get_room_info};
+use http::{login, get_user_info, get_chat_room_list, get_room_info, check_login,room_msg_list};
+use crate::sqlite::sqlite::sqlite::delete_token_if_not_remember;
 
 
 pub enum ConnectedEnum {
@@ -46,9 +51,18 @@ async fn main() {
     let tray = create_system_tray();
     // 创建系统菜单
     let menu = create_system_menu();
+    /// enable log crate to show sql logs
+    fast_log::init(fast_log::Config::new().console()).expect("rbatis init fail");
+    /// initialize rbatis. also you can call rb.clone(). this is  an Arc point
+    let rb = RBatis::new();
+    /// connect to database
+    // sqlite
+    let sqlite_url = env::var("SQLITE_URL").unwrap();
+    rb.init(SqliteDriver {}, sqlite_url.as_str()).unwrap();
 
     // 设置tauri 运行时
     tauri::async_runtime::set(tokio::runtime::Handle::current());
+
 
     // 配置Tauri
     tauri::Builder::default()
@@ -62,6 +76,7 @@ async fn main() {
             app_handle.manage(ws_connect_flag);
             Ok(())
         })
+        .manage(rb)
         .menu(menu)
         .on_menu_event(|event| menu_event_handle(event))
         // 配置rust指令，可以让前端调用
@@ -73,7 +88,9 @@ async fn main() {
             login,
             get_user_info,
             get_chat_room_list,
-            get_room_info
+            get_room_info,
+            check_login,
+            room_msg_list
     ])
         // 配置系统托盘
         .system_tray(tray)
@@ -178,12 +195,22 @@ fn tray_menu_handle(app_handle: &AppHandle<Wry>, event: SystemTrayEvent) {
                     println!("quit clicked");
                     let windows = app_handle.windows();
                     for key in windows.keys() {
+                        let handle = app_handle.clone();
                         let window_opt = windows.get(key);
                         if let Some(window) = window_opt {
                             tauri::api::dialog::confirm(Some(&window), "Tauri", "确定要退出吗?", move |answer| {
                                 // do something with `answer`
                                 if answer {
-                                    std::process::exit(0);
+                                    tauri::async_runtime::block_on( async
+                                        move {
+                                        let option_state: Option<State<'_, RBatis>> = handle.try_state();
+                                        if let Some(sql_state) = option_state {
+                                            delete_token_if_not_remember(sql_state).await
+                                        }else{
+                                            println!("无法获取rbatis");
+                                        }
+                                        std::process::exit(0);
+                                    });
                                 }
                             });
                         }

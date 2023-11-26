@@ -4,25 +4,25 @@ pub mod http {
     use std::fmt::{Debug, format};
     use std::fs::File;
     use std::io::Read;
+    use rbatis::RBatis;
     use base64::Engine;
     use reqwest::{Error, header, Response};
     use rsa::{RsaPrivateKey};
     use serde::de::DeserializeOwned;
     use serde::{Deserialize, Serialize};
     use tauri::{App, AppHandle, Manager, State, Wry};
-    use crate::back_to_login;
-    use crate::sqlite::{AuthHeader, ChatRoom, HttpError, HttpResult, User};
+    use crate::{back_to_login, WsConnectFlag};
+    use crate::command::route_to_admin;
+    use crate::sqlite::{AuthHeader, ChatMessage, ChatRoom, HttpError, HttpResult, User};
+    use crate::sqlite::sqlite::sqlite::{delete_token, get_token};
 
     const AUTH_HEADER: &str = "Authorization";
     const TOKEN_BEARER: &str = "Bearer ";
 
     /// 用户当前登录用户具体信息
     #[tauri::command]
-    pub async fn get_user_info(state: State<'_, AuthHeader>, app_handle: AppHandle<Wry>) ->
+    pub async fn get_user_info(state: State<'_, RBatis>, app_handle: AppHandle<Wry>) ->
     Result<HttpResult<User>, HttpError> {
-        let token = state.Authorization.clone();
-        println!("token : {}", token);
-
         match http_get::<User>("/user/info".to_string(), state, app_handle).await {
             Ok(res) => {
                 println!("{:?}", res);
@@ -37,7 +37,10 @@ pub mod http {
 
     /// 登录接口
     #[tauri::command]
-    pub async fn login(username: &str, password: &str, app_handle: AppHandle<Wry>) -> Result<HttpResult<()>, HttpError> {
+    pub async fn login(username: &str, password: &str, remember_me: bool, app_handle:
+    AppHandle<Wry>,
+                       sql_state: State<'_, RBatis>) ->
+                       Result<HttpResult<()>, HttpError> {
         let username = username.as_bytes();
         let password = password.as_bytes();
 
@@ -50,6 +53,7 @@ pub mod http {
         let mut map = HashMap::new();
         map.insert("username", username);
         map.insert("password", password);
+        map.insert("rememberMe", remember_me.to_string());
         map.insert("publicKey", public_key);
 
         let res = http_post_no_auth::<AuthHeader, HashMap<&str, String>>("/login".to_string(),
@@ -58,8 +62,18 @@ pub mod http {
         match res {
             Ok(result) => {
                 let auth = result.data.clone();
-                println!("{:?}", auth);
                 if let Some(mut data) = auth {
+                    let key = data.key.clone();
+                    println!("data key : {}", key);
+                    let decode_key = decode_msg(&key);
+                    println!("decode key : {}", decode_key);
+                    data.key = decode_key;
+                    println!("{:?}", data);
+
+                    let table = data.clone();
+                    let insert_data = AuthHeader::insert(&*sql_state, &table).await;
+                    println!("insert_data : {:?}", insert_data);
+
                     app_handle.manage(data);
                 }
                 let result = HttpResult {
@@ -153,11 +167,12 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
     }
 
     /// Http Get 请求接口 返回json格式
-    async fn http_get<T: DeserializeOwned>(path: String, state: State<'_, AuthHeader>,
+    async fn http_get<T: DeserializeOwned>(path: String, state: State<'_, RBatis>,
                                            app_handle: AppHandle<Wry>)
                                            ->
                                            Result<HttpResult<T>, HttpError> {
-        let token = state.Authorization.clone();
+        let token = get_token(state).await;
+
         let client = reqwest::Client::new();
         let url = format!("http://localhost:9090{}", path);
         let res = client.get(url)
@@ -170,9 +185,9 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
 
     /// Http Post 请求接口 返回json格式
     async fn http_post<T: DeserializeOwned, E: Serialize + ?Sized>(path: String, state: State<'_,
-        AuthHeader>, json: &E, app_handle: AppHandle<Wry>) ->
+        RBatis>, json: &E, app_handle: AppHandle<Wry>) ->
                                                                    Result<HttpResult<T>, HttpError> {
-        let token = state.Authorization.clone();
+        let token = get_token(state).await;
         let client = reqwest::Client::new();
         let host = env::var("HTTP_URL").expect("env file don't exists HTTP_URL");
         let url = format!("{}{}", host, path);
@@ -205,24 +220,33 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
                 match json {
                     Ok(data) => {
                         println!("http code : {:?}", data.code);
-                        if data.code == 403 {
-                            let windows = app_handle.clone().windows();
-                            for key in windows.keys() {
-                                let app_clone = app_handle.clone();
-                                let window_opt = windows.get(key);
-                                if let Some(window) = window_opt {
-                                    tauri::api::dialog::confirm(Some(&window), "Tauri", "令牌已过期，请重新登录!",
-                                                                move
-                                                                    |answer| {
-                                                                    back_to_login(app_clone);
-                                                                });
+                        if data.code == 403 || data.code == 401 {
+                            if let None = app_handle.get_window("login") {
+                                let windows = app_handle.clone().windows();
+                                for key in windows.keys() {
+                                    let app_clone = app_handle.clone();
+                                    let window_opt = windows.get(key);
+                                    if let Some(window) = window_opt {
+                                        tauri::api::dialog::confirm(Some(&window), "Tauri", "令牌已过期，请重新登录!",
+                                                                    move
+                                                                        |answer| {
+                                                                        if answer {
+                                                                            tauri::async_runtime::block_on(async move {
+                                                                                let state: State<'_, RBatis> = app_clone.try_state().unwrap();
+                                                                                delete_token(state).await;
+                                                                                back_to_login(app_clone);
+                                                                            });
+                                                                        }
+                                                                    });
+                                    }
+                                    break;
                                 }
                             }
                         }
                         Ok(data)
                     }
                     Err(e) => {
-                        println!("反序列化失败! -> {:?}",e);
+                        println!("反序列化失败! -> {:?}", e);
                         Err(HttpError::CustomError("Error".to_string()))
                     }
                 }
@@ -236,8 +260,8 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
 
 
     #[tauri::command]
-    pub async fn get_chat_room_list(state: State<'_, AuthHeader>, app_handle: AppHandle<Wry>) ->
-                                                                                              Result<HttpResult<Vec<ChatRoom>>,HttpError>{
+    pub async fn get_chat_room_list(state: State<'_, RBatis>, app_handle: AppHandle<Wry>) ->
+    Result<HttpResult<Vec<ChatRoom>>, HttpError> {
         match http_get::<Vec<ChatRoom>>("/chat-room/all".to_string(), state, app_handle).await {
             Ok(res) => {
                 println!("{:?}", res);
@@ -251,23 +275,53 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
     }
 
     #[tauri::command]
-    pub async fn get_room_info(roomId:String,state: State<'_, AuthHeader>, app_handle:
+    pub async fn get_room_info(roomId: String, state: State<'_, RBatis>, app_handle:
     AppHandle<Wry>)
-        -> Result<HttpResult<ChatRoom>,HttpError>{
-        match http_get::<ChatRoom>(format!("/chat-room/{}",roomId), state, app_handle).await {
+                               -> Result<HttpResult<ChatRoom>, HttpError> {
+        match http_get::<ChatRoom>(format!("/chat-room/{}", roomId), state, app_handle).await {
             Ok(res) => {
                 println!("{:?}", res);
                 Ok(res)
             }
             Err(e) => {
-                println!("调用失败 -> /chat-room/{}",roomId);
+                println!("调用失败 -> /chat-room/{}", roomId);
                 Err(e)
             }
         }
+    }
 
+    #[tauri::command]
+    pub async fn check_login(state: State<'_, RBatis>, conn_state: State<'_, WsConnectFlag>,
+                             app_handle: AppHandle<Wry>) -> Result<(),
+        HttpError> {
+        let token = get_token(state).await;
+        if token != "" {
+            route_to_admin(app_handle, conn_state);
+        }
+        Ok(())
     }
 
 
+    #[tauri::command]
+    pub async fn room_msg_list(room_id: String, send_time: String,
+                               state: State<'_, RBatis>,
+                               app_handle: AppHandle<Wry>) -> Result<HttpResult<Vec<ChatMessage>>,
+        HttpError> {
+        let mut map: HashMap<String, String> = HashMap::new();
+        map.insert("roomId".to_string(), room_id.to_string() );
+        map.insert("sendTime".to_string(), send_time.to_string());
+
+        match http_post("/chat-message/list".to_string(), state, &map, app_handle).await {
+            Ok(res) => {
+                println!("{:?}", res);
+                Ok(res)
+            }
+            Err(e) => {
+                println!("调用失败 -> /chat-message/list");
+                Err(e)
+            }
+        }
+    }
 
 
     #[cfg(test)]
@@ -352,6 +406,4 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
             assert_eq!(raw_string, decode_str);
         }
     }
-
-
 }

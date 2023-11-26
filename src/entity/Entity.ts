@@ -17,3 +17,14 @@ export class ChatRoom {
     isTop!: boolean;
     isView!: boolean;
 }
+
+export class  ChatMessage{
+    id!:string;
+    roomId!:number;
+    content!:string;
+    senderId!:number;
+    senderName!:string;
+    sendTime!:number;
+    createdBy!:number;
+    createdTime!:number;
+}

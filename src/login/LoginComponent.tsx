@@ -1,17 +1,18 @@
-import {Component} from "react";
 import "./LoginComonent.scss";
 import {CloseOutlined, LockOutlined, MinusOutlined, UserOutlined} from "@ant-design/icons";
 import {Avatar, Button, message, Checkbox, Form, Input} from "antd";
 import {appWindow} from "@tauri-apps/api/window";
 import {invoke} from "@tauri-apps/api";
-import {useNavigate} from "react-router";
 import {R} from "../entity/Entity";
-import {Simulate} from "react-dom/test-utils";
-import error = Simulate.error;
+import {useEffect} from "react";
 
 export function LoginComponent() {
 
     const [messageApi, contextHolder] = message.useMessage();
+
+    useEffect(() => {
+        invoke('check_login', {}).then();
+    }, []);
 
     function closeClick() {
         appWindow.minimize().then();
@@ -21,12 +22,12 @@ export function LoginComponent() {
         appWindow.hide().then();
     }
 
-    function finished(value: any) {
+    function finished(value:  any ) {
         console.log("value ");
         console.log(value);
         const username = value['username'];
         const password = value['password'];
-        const rememberMe = value['rememberMe'];
+        const rememberMe = value['remember'];
         messageApi.open({
             key: 'login',
             type: 'loading',
@@ -36,44 +37,46 @@ export function LoginComponent() {
             },
             duration: 10
         });
-            invoke('login', {
-                username: username,
-                password: password
-            }).then((res: R) => {
-                    console.log(res);
-                    if (res.code == 200) {
-                        messageApi.open({
-                            key: 'login',
-                            type: 'success',
-                            content: '登录成功!',
-                            style: {
-                                marginTop: '20px'
-                            }
-                        });
-                        setTimeout(() => {
-                            invoke('route_to_admin', {}).then();
-                        }, 500);
-                    } else {
-                        messageApi.open({
-                            key: 'login',
-                            type: 'error',
-                            content: res.msg,
-                            style: {
-                                marginTop: '20px'
-                            }
-                        });
-                    }
+        invoke('login', {
+            username: username,
+            password: password,
+            rememberMe: rememberMe
+        }).then((res: R) => {
+                console.log(res);
+                if (res.code == 200) {
+                    messageApi.open({
+                        key: 'login',
+                        type: 'success',
+                        content: '登录成功!',
+                        style: {
+                            marginTop: '20px'
+                        }
+                    });
+                    setTimeout(() => {
+                        invoke('route_to_admin', {}).then();
+                    }, 500);
+                } else {
+                    messageApi.open({
+                        key: 'login',
+                        type: 'error',
+                        content: res.msg,
+                        style: {
+                            marginTop: '20px'
+                        }
+                    });
                 }
-            ).catch(err => {
-                messageApi.open({
-                    key: 'login',
-                    type: 'error',
-                    content: '登录失败',
-                    style: {
-                        marginTop: '20px'
-                    }
-                });
+            }
+        ).catch(err => {
+            console.log(err);
+            messageApi.open({
+                key: 'login',
+                type: 'error',
+                content: '登录失败',
+                style: {
+                    marginTop: '20px'
+                }
             });
+        });
     }
 
     return (
