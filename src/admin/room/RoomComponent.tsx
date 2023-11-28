@@ -20,7 +20,15 @@ export function RoomComponent() {
     const [messageList, setMessageList] = useState([]);
     const [currentUserId, setCurrentUserId] = useState(-1);
     const [latestTime, setLatestTime] = useState(0);
-    const [hasMore,setHasMore] = useState(true);
+    const [hasMore, setHasMore] = useState(true);
+    const [lastScrollHeight, setLastScrollHeight] = useState(0);
+    const [chatContent, setChatContent] = useState(null);
+
+    useEffect(() => {
+
+        scrollToBottom(true);
+
+    }, [chatContent])
 
     useEffect(() => {
         setLoading(true);
@@ -70,7 +78,8 @@ export function RoomComponent() {
                     }
                     setMessageList(messageList);
                     setLatestTime(res.data[0].sendTime);
-                }else{
+                    scrollOldHeight();
+                } else {
                     setHasMore(false);
                 }
                 console.log(messageList);
@@ -105,6 +114,39 @@ export function RoomComponent() {
         getMessageList(latestTime.toString());
     }
 
+
+    /**
+     * 滚动到最底部
+     * 默认是当前页面在最底部时自动滚动
+     *
+     * @param refresh 默认为false ，表示只有在最底部才滚动，true 为强制滚动
+     */
+    function scrollToBottom(refresh: boolean) {
+        console.log("chatContent")
+        console.log(chatContent);
+        if (!refresh && chatContent && chatContent.scrollHeight - chatContent.scrollTop == chatContent.clientHeight) {
+            console.log("自动滚动!");
+            chatContent.scrollTop = chatContent.scrollHeight;
+            setLastScrollHeight(chatContent.scrollHeight);
+        } else if (refresh && chatContent) {
+            console.log("强制滚动")
+            chatContent.scrollTop = chatContent.scrollHeight;
+            setLastScrollHeight(chatContent.scrollHeight);
+        }
+        console.log("last height : " + lastScrollHeight);
+    }
+
+    function scrollOldHeight() {
+        console.log("last height : " + lastScrollHeight);
+        console.log("scrollTop : ", chatContent.scrollTop);
+        console.log("scrollHeight : " ,chatContent.scrollHeight);
+        let height = chatContent.scrollHeight - lastScrollHeight;
+        console.log(height);
+        chatContent.scrollTop = 20;
+        setLastScrollHeight(chatContent.scrollHeight);
+    }
+
+
     return (
         <>
             {
@@ -119,10 +161,10 @@ export function RoomComponent() {
                                 {room ? room.roomName : ''}
                             </p>
                         </Header>
-                        <Content id={"chatContent"}>
+                        <Content id={"chatContent"} ref={setChatContent}>
                             <div className="more-msg">
                                 {
-                                    hasMore?
+                                    hasMore ?
                                         <a onClick={(e) => getMoreMsg(e)}>
                                             显示更多消息
                                         </a>
