@@ -6,8 +6,10 @@ pub mod http {
     use std::io::Read;
     use rbatis::RBatis;
     use base64::Engine;
+    use rbdc_sqlite::SqliteDriver;
     use reqwest::{Error, header, Response};
     use rsa::{RsaPrivateKey};
+    use rusqlite::Connection;
     use serde::de::DeserializeOwned;
     use serde::{Deserialize, Serialize};
     use tauri::{App, AppHandle, Manager, State, Wry};
@@ -37,9 +39,7 @@ pub mod http {
 
     /// 登录接口
     #[tauri::command]
-    pub async fn login(username: &str, password: &str, remember_me: bool, app_handle:
-    AppHandle<Wry>,
-                       sql_state: State<'_, RBatis>) ->
+    pub async fn login(username: &str, password: &str, remember_me: bool, app_handle: AppHandle<Wry>) ->
                        Result<HttpResult<()>, HttpError> {
         let username = username.as_bytes();
         let password = password.as_bytes();
@@ -69,12 +69,25 @@ pub mod http {
                     println!("decode key : {}", decode_key);
                     data.key = decode_key;
                     println!("{:?}", data);
-
                     let table = data.clone();
-                    let insert_data = AuthHeader::insert(&*sql_state, &table).await;
-                    println!("insert_data : {:?}", insert_data);
 
+                    /// connect to database
+                    let mut sqlite_url = env::var("SQLITE_URL").unwrap();
+                    sqlite_url = format!("{}{}.db",sqlite_url,data.key);
+
+                    let rb = RBatis::new();
+                    rb.init(SqliteDriver {}, sqlite_url.as_str()).unwrap();
+
+                    let mut sql_file = File::open("main.sql").unwrap();
+                    let mut sql = String::new();
+                    sql_file.read_to_string(&mut sql).expect("read sql failed");
+
+                    rb.exec(sql.as_str(),vec![]).await.expect("exec sql failed");
+
+                    let insert_data = AuthHeader::insert(&rb, &table).await;
+                    println!("insert_data : {:?}", insert_data);
                     app_handle.manage(data);
+                    app_handle.manage(rb);
                 }
                 let result = HttpResult {
                     code: result.code,
@@ -291,14 +304,25 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
     }
 
     #[tauri::command]
-    pub async fn check_login(state: State<'_, RBatis>, conn_state: State<'_, WsConnectFlag>,
+    pub async fn check_login(conn_state: State<'_, WsConnectFlag>,
                              app_handle: AppHandle<Wry>) -> Result<(),
         HttpError> {
-        let token = get_token(state).await;
-        if token != "" {
-            route_to_admin(app_handle, conn_state);
+        let state_opt:Option<State<'_,RBatis>> = app_handle.try_state();
+        if let Some(state) =  state_opt{
+            let token = get_token(state).await;
+            if token != "" {
+                route_to_admin(app_handle, conn_state);
+            }
         }
         Ok(())
+    }
+
+    fn init_db(url:&str){
+        let conn = Connection::open(url).unwrap();
+        let mut sql_file = File::open("main.sql").unwrap();
+        let mut sql = String::new();
+        sql_file.read_to_string(&mut sql).expect("read sql failed");
+        conn.execute_batch(sql.as_str()).unwrap();
     }
 
 
@@ -322,6 +346,8 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
             }
         }
     }
+
+
 
 
     #[cfg(test)]

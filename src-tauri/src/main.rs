@@ -54,15 +54,13 @@ async fn main() {
     /// enable log crate to show sql logs
     fast_log::init(fast_log::Config::new().console()).expect("rbatis init fail");
     /// initialize rbatis. also you can call rb.clone(). this is  an Arc point
-    let rb = RBatis::new();
-    /// connect to database
-    // sqlite
-    let sqlite_url = env::var("SQLITE_URL").unwrap();
-    rb.init(SqliteDriver {}, sqlite_url.as_str()).unwrap();
+
+    // /// connect to database
+    // let sqlite_url = env::var("SQLITE_URL").unwrap();
+    // rb.init(SqliteDriver {}, sqlite_url.as_str()).unwrap();
 
     // 设置tauri 运行时
     tauri::async_runtime::set(tokio::runtime::Handle::current());
-
 
     // 配置Tauri
     tauri::Builder::default()
@@ -76,7 +74,6 @@ async fn main() {
             app_handle.manage(ws_connect_flag);
             Ok(())
         })
-        .manage(rb)
         .menu(menu)
         .on_menu_event(|event| menu_event_handle(event))
         // 配置rust指令，可以让前端调用

@@ -47,10 +47,10 @@ pub mod structs {
     #[derive(Serialize, Deserialize, Debug)]
     #[allow(non_snake_case)]
     pub struct AuthHeader {
+        pub key: String,
         pub Authorization: String,
         pub refresh_token: String,
         pub remember_me: i32,
-        pub key: String,
     }
     crud!(AuthHeader{});
     impl_select!(AuthHeader{get_token() => "`limit 1`"});
