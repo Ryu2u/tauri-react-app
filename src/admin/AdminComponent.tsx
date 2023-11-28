@@ -14,6 +14,7 @@ export function AdminComponent() {
     useEffect(() => {
         console.log("connecting to websocket")
         invoke('connect_websocket', {}).then();
+        invoke('get_user_info',{}).then();
     },[]);
 
 

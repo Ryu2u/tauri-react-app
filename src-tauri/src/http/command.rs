@@ -3,6 +3,7 @@
     use std::env;
     use std::fs::File;
     use std::io::Read;
+    use std::sync::Arc;
     use rbatis::RBatis;
     use rbdc_sqlite::SqliteDriver;
     use tauri::{ AppHandle, Manager, State, Wry};
@@ -187,13 +188,15 @@
     #[tauri::command]
     pub async fn get_user_info(state: State<'_, RBatis>, app_handle: AppHandle<Wry>) ->
     Result<HttpResult<User>, HttpError> {
-        match http_get::<User>("/user/info".to_string(), state, app_handle).await {
+        match http_get::<User>("/user/info".to_string(), state, app_handle.clone()).await {
             Ok(res) => {
                 println!("{:?}", res);
+                let user = res.data.clone().unwrap();
+                app_handle.manage(user);
                 Ok(res)
             }
             Err(e) => {
-                println!("Errrrrr");
+                println!("Error");
                 Err(e)
             }
         }

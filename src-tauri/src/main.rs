@@ -52,7 +52,7 @@ async fn main() {
     // 创建系统菜单
     let menu = create_system_menu();
     // 启用日志
-    fast_log::init(fast_log::Config::new().console()).expect("rbatis init fail");
+    // fast_log::init(fast_log::Config::new().console()).expect("rbatis init fail");
     // 设置tauri 运行时
     tauri::async_runtime::set(tokio::runtime::Handle::current());
     // 配置Tauri

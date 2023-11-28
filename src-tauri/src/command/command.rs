@@ -43,10 +43,12 @@ pub mod command {
                     if window.label() != "login" {
                         window.close().unwrap();
                     }
+                    let _ = set_shadow(&window, true);
                 }
             }
         });
     }
+
 
     /// 创建login 窗口
     fn get_login_window(app_handle: &AppHandle<Wry>) -> Window<Wry> {

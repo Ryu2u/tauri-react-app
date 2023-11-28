@@ -1,17 +1,17 @@
 import "./LoginComonent.scss";
 import {CloseOutlined, LockOutlined, MinusOutlined, UserOutlined} from "@ant-design/icons";
-import {Avatar, Button, message, Checkbox, Form, Input} from "antd";
+import {Avatar, Button, message, Checkbox, Form, Input, FormInstance} from "antd";
 import {appWindow} from "@tauri-apps/api/window";
 import {invoke} from "@tauri-apps/api";
 import {R} from "../entity/Entity";
-import {useEffect} from "react";
+import {useEffect, useRef} from "react";
 
 export function LoginComponent() {
 
     const [messageApi, contextHolder] = message.useMessage();
+    const formRef = useRef<FormInstance>(null);
 
     useEffect(() => {
-
         let userKey = localStorage.getItem("user-key");
         if (userKey) {
             let key = parseInt(userKey);
@@ -19,6 +19,12 @@ export function LoginComponent() {
                 userId: key
             }).then();
         }
+
+        let username = localStorage.getItem("username");
+        if (username){
+            formRef.current!.setFieldValue("username", username);
+        }
+
     }, []);
 
     function closeClick() {
@@ -59,7 +65,8 @@ export function LoginComponent() {
                             marginTop: '20px'
                         }
                     });
-                    localStorage.setItem("user-key",res.data);
+                    localStorage.setItem("user-key", res.data);
+                    localStorage.setItem("username", username);
                     setTimeout(() => {
                         invoke('route_to_admin', {}).then();
                     }, 500);
@@ -104,9 +111,11 @@ export function LoginComponent() {
 
                 </div>
                 <div className={"input-div"}>
-                    <Form className="login-form"
-                          initialValues={{remember: true}}
-                          onFinish={finished}
+                    <Form
+                        ref={formRef}
+                        className="login-form"
+                        initialValues={{remember: true}}
+                        onFinish={finished}
                     >
                         <Form.Item
                             name="username"

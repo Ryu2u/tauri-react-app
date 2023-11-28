@@ -69,7 +69,7 @@
     #[derive(Clone, Serialize, Deserialize, Debug)]
     #[allow(non_snake_case)]
     pub struct User {
-        id: i32,
+        pub id: i32,
         username: String,
         nickName: String,
         avatarPath: String,
@@ -102,6 +102,7 @@
         senderId:i32,
         senderName:String,
         content:String,
+        senderAvatar:String,
         sendTime:i64,
         createdBy:i32,
         createdTime:i64

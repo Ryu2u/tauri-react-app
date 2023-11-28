@@ -49,9 +49,17 @@ export function RoomComponent() {
             sendTime: sendTime.toString()
         }).then((res: R) => {
             if (res.code == 200) {
-                setMessageList(res.data);
-                setLatestTime(res.data[0].sendTime);
-                console.log("latestTime : " + latestTime);
+                if (res.data.length > 0) {
+                    setMessageList(res.data);
+                    setLatestTime(res.data[0].sendTime);
+                    scrollOldHeight();
+                    scrollToBottom(false);
+                    if (res.data.length < 10) {
+                        setHasMore(false);
+                    }
+                } else {
+                    setHasMore(false);
+                }
             }
         })
 
@@ -72,7 +80,7 @@ export function RoomComponent() {
             if (res.code == 200) {
                 console.log(res.data);
                 if (res.data.length > 0) {
-                    let arr = res.data;
+                    let arr: ChatMessage[] = res.data;
                     for (let i = arr.length - 1; i >= 0; i--) {
                         messageList.unshift(arr[i]);
                     }
@@ -80,6 +88,9 @@ export function RoomComponent() {
                     setLatestTime(res.data[0].sendTime);
                     scrollOldHeight();
                     scrollToBottom(false);
+                    if (arr.length < 10) {
+                        setHasMore(false);
+                    }
                 } else {
                     setHasMore(false);
                 }
@@ -140,7 +151,7 @@ export function RoomComponent() {
     function scrollOldHeight() {
         console.log("last height : " + lastScrollHeight);
         console.log("scrollTop : ", chatContent.scrollTop);
-        console.log("scrollHeight : " ,chatContent.scrollHeight);
+        console.log("scrollHeight : ", chatContent.scrollHeight);
         let height = chatContent.scrollHeight - lastScrollHeight;
         console.log(height);
         chatContent.scrollTop = 20;
@@ -181,7 +192,7 @@ export function RoomComponent() {
                                         <div className={msg.senderId == currentUserId ? "chat_right_content" : "chat_left_content"}>
                                             <Avatar
                                                 className={msg.senderId == currentUserId ? "right_avatar" : "left_avatar"}
-                                                src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}
+                                                src={msg.senderAvatar}
                                                 gap={3}
                                                 size={"large"}
                                             />

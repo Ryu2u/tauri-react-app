@@ -24,6 +24,7 @@ export class  ChatMessage{
     content!:string;
     senderId!:number;
     senderName!:string;
+    senderAvatar!:string;
     sendTime!:number;
     createdBy!:number;
     createdTime!:number;
