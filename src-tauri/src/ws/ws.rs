@@ -1,4 +1,3 @@
-pub mod ws {
     use futures_util::SinkExt;
     use tauri::{AppHandle, Event, Manager, State, Wry};
     use tokio::task::block_in_place;
@@ -11,15 +10,16 @@ pub mod ws {
 
     #[tauri::command]
     pub async fn connect_websocket(app_handle: AppHandle<Wry>, state: State<'_, WsConnectFlag>) -> tauri::Result<()> {
-        if let Ok(guard) = state.connected.lock() {
-            if let ConnectedEnum::YES =  *guard  {
-                println!("WebSocket is connected");
-                return Ok(());
+        let state_copy = state.clone();
+        let guard = state_copy.connected.lock().await;
+        match *guard {
+            ConnectedEnum::YES => {
+                println!("websocket is connected!");
             }
-        } else {
-            panic!("can't get connected lock")
+            ConnectedEnum::NO => {
+                connect_ws_async(&app_handle, state).await.unwrap();
+            }
         }
-        connect_ws_async(&app_handle, state).await.unwrap();
         Ok(())
     }
 
@@ -41,17 +41,16 @@ pub mod ws {
 
         let (ws_stream, _) = match connect_response {
             Ok(ws, ..) => {
-                if let Ok(mut guard) = state.connected.lock() {
-                    if let  ConnectedEnum::YES = *guard   {
+                let guard = state.connected.lock().await;
+                match *guard {
+                    ConnectedEnum::YES => {
                         println!("WebSocket is connected");
                         return Ok(());
-                    } else {
-                        *guard = ConnectedEnum::YES;
                     }
-                } else {
-                    panic!("can't get connected lock")
+                    ConnectedEnum::NO => {
+                        ws
+                    }
                 }
-                ws
             }
             Err(_) => {
                 let windows = app_handle.windows();
@@ -127,7 +126,7 @@ pub mod ws {
                     }
                 } else {
                     {
-                        let mut flag = guard.lock().unwrap();
+                        let mut flag = guard.lock().await;
                         *flag = ConnectedEnum::NO;
 
                     }
@@ -138,4 +137,3 @@ pub mod ws {
 
         Ok(())
     }
-}

@@ -11,7 +11,14 @@ export function LoginComponent() {
     const [messageApi, contextHolder] = message.useMessage();
 
     useEffect(() => {
-        invoke('check_login', {}).then();
+
+        let userKey = localStorage.getItem("user-key");
+        if (userKey) {
+            let key = parseInt(userKey);
+            invoke('check_login', {
+                userId: key
+            }).then();
+        }
     }, []);
 
     function closeClick() {
@@ -22,7 +29,7 @@ export function LoginComponent() {
         appWindow.hide().then();
     }
 
-    function finished(value:  any ) {
+    function finished(value: any) {
         console.log("value ");
         console.log(value);
         const username = value['username'];
@@ -52,6 +59,7 @@ export function LoginComponent() {
                             marginTop: '20px'
                         }
                     });
+                    localStorage.setItem("user-key",res.data);
                     setTimeout(() => {
                         invoke('route_to_admin', {}).then();
                     }, 500);

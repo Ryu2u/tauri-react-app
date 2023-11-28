@@ -19,9 +19,12 @@ export function RoomComponent() {
     const [loading, setLoading] = useState(true);
     const [messageList, setMessageList] = useState([]);
     const [currentUserId, setCurrentUserId] = useState(-1);
+    const [latestTime, setLatestTime] = useState(0);
+    const [hasMore,setHasMore] = useState(true);
 
     useEffect(() => {
         setLoading(true);
+        setHasMore(true);
 
         invoke('get_room_info', {
             roomId: param['id']
@@ -35,12 +38,12 @@ export function RoomComponent() {
 
         invoke('room_msg_list', {
             roomId: param['id'],
-            sendTime: sendTime.toString(),
+            sendTime: sendTime.toString()
         }).then((res: R) => {
             if (res.code == 200) {
                 setMessageList(res.data);
-                console.log("room list");
-                console.log(messageList);
+                setLatestTime(res.data[0].sendTime);
+                console.log("latestTime : " + latestTime);
             }
         })
 
@@ -50,8 +53,31 @@ export function RoomComponent() {
             }
         });
 
-
     }, [param]);
+
+
+    function getMessageList(sendTime: string) {
+        invoke('room_msg_list', {
+            roomId: param['id'],
+            sendTime: sendTime
+        }).then((res: R) => {
+            if (res.code == 200) {
+                console.log(res.data);
+                if (res.data.length > 0) {
+                    let arr = res.data;
+                    for (let i = arr.length - 1; i >= 0; i--) {
+                        messageList.unshift(arr[i]);
+                    }
+                    setMessageList(messageList);
+                    setLatestTime(res.data[0].sendTime);
+                }else{
+                    setHasMore(false);
+                }
+                console.log(messageList);
+                console.log("latestTime : " + latestTime);
+            }
+        })
+    }
 
     function getParam() {
         console.log("room id : ");
@@ -74,6 +100,10 @@ export function RoomComponent() {
         });
     }
 
+    function getMoreMsg(event: Event) {
+        console.log("more");
+        getMessageList(latestTime.toString());
+    }
 
     return (
         <>
@@ -82,7 +112,6 @@ export function RoomComponent() {
                     <div className={"loading-div"}>
                         <Spin size={'large'}/>
                     </div>
-
                     :
                     <>
                         <Header className={"room-header"}>
@@ -91,7 +120,18 @@ export function RoomComponent() {
                             </p>
                         </Header>
                         <Content id={"chatContent"}>
-                            <div className="more-msg"></div>
+                            <div className="more-msg">
+                                {
+                                    hasMore?
+                                        <a onClick={(e) => getMoreMsg(e)}>
+                                            显示更多消息
+                                        </a>
+                                        :
+                                        <span>
+                                        没有更多消息
+                                        </span>
+                                }
+                            </div>
                             {
                                 messageList.map((msg: ChatMessage) => (
                                     <div key={msg.id} className={msg.senderId == currentUserId ? "message chat_right" : "message chat_left"}>
@@ -103,7 +143,7 @@ export function RoomComponent() {
                                                 size={"large"}
                                             />
                                             <div className={msg.senderId == currentUserId ? "chat_right_time" : "chat_left_time"}>
-                                                {new Date(msg.sendTime).toLocaleString('chinese',{hour12: false})}   -  <strong>{msg.senderName}</strong>
+                                                {msg.sendTime % 10 == 0 ? new Date(msg.sendTime).toLocaleString('chinese', {hour12: false}) : <span>&nbsp;</span>}
                                             </div>
                                             <div className={msg.senderId == currentUserId ? "chat_right_msg" : "chat_left_msg"}>
                                                 <div>

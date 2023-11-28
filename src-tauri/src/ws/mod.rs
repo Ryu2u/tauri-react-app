@@ -2,4 +2,4 @@
 
 pub mod ws;
 
-pub use ws::ws::connect_websocket;
+pub use ws::connect_websocket;

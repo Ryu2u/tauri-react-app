@@ -12,6 +12,19 @@ export default function VditorEdit({getVditor}) {
             resize: {
                 enable: false
             },
+            toolbar:
+                [
+                    "headings",
+                    "bold",
+                    "italic",
+                    "strike",
+                    "upload",
+                    "inline-code",
+                    "link",
+                    "edit-mode",
+                    'fullscreen'
+                ]
+            ,
             after: () => {
                 vditor.setValue("`Vditor` 最小代码示例");
 
@@ -21,6 +34,6 @@ export default function VditorEdit({getVditor}) {
     }, []);
 
     return (
-            <div id="vditor" className="vditor-div"/>
-    ) ;
+        <div id="vditor" className="vditor-div"/>
+    );
 }

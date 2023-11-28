@@ -1,5 +1,8 @@
+mod http;
+mod secure;
+mod command;
 
-pub mod http;
+pub use http::{*};
 
-pub use http::http::{*};
+pub use command::{*};
 

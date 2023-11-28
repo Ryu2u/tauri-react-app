@@ -3,8 +3,8 @@ pub mod sqlite {
     use tauri::State;
     use crate::sqlite::AuthHeader;
 
-    pub async fn get_token(sql_state: State<'_, RBatis>) -> String {
-        let res = AuthHeader::get_token(&*sql_state).await;
+    pub async fn get_token(rb: &RBatis) -> String {
+        let res = AuthHeader::get_token(rb).await;
         if let Ok(data) = res {
             if data.len() > 0 {
                 let x = data.get(0).unwrap();

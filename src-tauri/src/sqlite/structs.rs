@@ -1,5 +1,4 @@
-pub mod structs {
-    use std::fmt::{Debug, Display, Formatter, write};
+    use std::fmt::{Debug, Display, Formatter};
     use rbatis::crud;
     use reqwest::StatusCode;
     use serde::{Deserialize, Serialize};
@@ -107,8 +106,3 @@ pub mod structs {
         createdBy:i32,
         createdTime:i64
     }
-
-
-
-
-}

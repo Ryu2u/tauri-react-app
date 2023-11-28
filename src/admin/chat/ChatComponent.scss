@@ -109,11 +109,10 @@ nz-breadcrumb {
   background-color: transparent;
 }
 
-
 .message {
   position: relative;
   display: flex;
-  margin: 20px 0;
+  margin: 15px 0;
 
   p {
     margin-bottom: 0;
@@ -180,7 +179,7 @@ nz-breadcrumb {
   text-align: left;
   position: relative;
   float: right;
-  max-width: 610px;
+  max-width: 340px;
   padding: 5px;
   background-color: #ffffff;
   border-radius: 10px;
@@ -202,12 +201,6 @@ nz-breadcrumb {
   white-space: pre-wrap;
 }
 
-.chat_left_time {
-  text-align: left;
-  padding-left: 10px;
-  padding-bottom: 10px;
-}
-
 
 .chat_right {
   justify-content: flex-end;
@@ -215,8 +208,14 @@ nz-breadcrumb {
 }
 
 
+.chat_left_time {
+  text-align: center;
+  margin-right: 130px;
+  padding-bottom: 10px;
+}
+
 .chat_right_time {
-  text-align: right;
+  text-align: center;
   padding-right: 10px;
   padding-bottom: 10px;
 }
@@ -427,7 +426,8 @@ nz-breadcrumb {
 .room-list-item {
   margin: 10px;
 }
-.room-list-item-checked{
+
+.room-list-item-checked {
   margin: 10px;
   background-color: #e5f1ff;
   border-radius: 10px;

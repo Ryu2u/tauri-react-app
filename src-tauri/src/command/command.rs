@@ -1,9 +1,8 @@
 pub mod command {
     use std::thread;
-    use tauri::{Manager, State, Window, Wry};
+    use tauri::{Manager,  Window, Wry};
     use tauri::{AppHandle};
     use window_shadows::set_shadow;
-    use crate::WsConnectFlag;
 
     #[tauri::command]
     pub fn greet(name: &str) -> String {
@@ -12,9 +11,7 @@ pub mod command {
 
     /// 登录完成操作，跳转到主页面
     #[tauri::command]
-    pub fn route_to_admin(app_handle: AppHandle<Wry>, state: State<'_, WsConnectFlag>) {
-        let lock = state.connected.lock().unwrap();
-
+    pub fn route_to_admin(app_handle: AppHandle<Wry>) {
         if let Some(window) = app_handle.get_window("main") {
             if !window.is_visible().unwrap() {
                 window.show().unwrap();
@@ -31,7 +28,6 @@ pub mod command {
         } else {
             panic!("login window is not exists");
         }
-        drop(lock);
     }
 
     /// 创建Login 窗口并关闭其他所有窗口

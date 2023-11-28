@@ -37,7 +37,6 @@ rsa = "0.9.4"
 rand = "0.8.5"
 base64 = "0.21.5"
 
-rusqlite = { version = "0.30.0", features = ["bundled"] }
 # ORM
 #rbatis deps
 rbs = { version = "4.5"}
