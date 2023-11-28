@@ -79,6 +79,7 @@ export function RoomComponent() {
                     setMessageList(messageList);
                     setLatestTime(res.data[0].sendTime);
                     scrollOldHeight();
+                    scrollToBottom(false);
                 } else {
                     setHasMore(false);
                 }
