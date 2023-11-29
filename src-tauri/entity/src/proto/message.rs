@@ -44,8 +44,8 @@ pub struct LoginMessage {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SingleMessage {
-    #[prost(string, tag = "1")]
-    pub receiver_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "1")]
+    pub receiver_id: i32,
     #[prost(string, tag = "2")]
     pub receiver_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
@@ -55,8 +55,8 @@ pub struct SingleMessage {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GroupMessage {
-    #[prost(string, tag = "1")]
-    pub group_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "1")]
+    pub group_id: i32,
     #[prost(string, tag = "2")]
     pub group_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
@@ -72,8 +72,8 @@ pub struct AckMessage {
     pub msg_content: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub msg_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub room_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "4")]
+    pub room_id: i32,
     #[prost(int32, tag = "5")]
     pub user_id: i32,
     #[prost(int32, tag = "6")]
@@ -85,8 +85,8 @@ pub struct AckMessage {
 pub struct RollbackMessage {
     #[prost(string, tag = "1")]
     pub msg_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub room_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub room_id: i32,
 }
 #[derive(serde::Serialize, serde::Deserialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -94,8 +94,8 @@ pub struct RollbackMessage {
 pub struct TaskReadMessage {
     #[prost(string, tag = "1")]
     pub msg_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub room_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub room_id: i32,
     #[prost(string, tag = "3")]
     pub user_id: ::prost::alloc::string::String,
 }

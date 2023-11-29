@@ -17,18 +17,30 @@ export function ChatComponent() {
     const [currentRoomId, setCurrentRoomId] = useState(-1);
 
     useEffect(() => {
+        console.log("url");
+        console.log(window.location.toString());
+        const url: string = window.location.toString();
+        if (url.includes("/chat/room/")) {
+            const i = url.lastIndexOf("/");
+            if (i != -1) {
+                const id = url.substring(i + 1);
+                setCurrentRoomId(parseInt(id));
+            }
+
+        }
+
         listen('msg_read', (event) => {
             console.log("Get Msg --> ")
             console.log(event.payload);
         }).then();
-            invoke('get_chat_room_list', {}).then((res: R) => {
-                console.log(res);
-                setRoomList(res.data);
-                console.log("roomList -> ")
-                console.log(roomList);
-            });
+        invoke('get_chat_room_list', {}).then((res: R) => {
+            console.log(res);
+            setRoomList(res.data);
+            console.log("roomList -> ")
+            console.log(roomList);
+        });
 
-    },[]);
+    }, []);
 
 
     function sideMouseUpEvent(event: React.WheelEvent<HTMLDivElement>) {
@@ -65,7 +77,16 @@ export function ChatComponent() {
                     minWidth={220}
                     maxWidth={300}
                     handleClasses={{top: 'resize-div'}}
-                    enable={{top: false, right: true, bottom: false, left: false, topRight: false, bottomRight: false, bottomLeft: false, topLeft: false}}
+                    enable={{
+                        top: false,
+                        right: true,
+                        bottom: false,
+                        left: false,
+                        topRight: false,
+                        bottomRight: false,
+                        bottomLeft: false,
+                        topLeft: false
+                    }}
                 >
                     <Sider width={'auto'} onWheel={e => sideMouseUpEvent(e)} id={"side-bar"} theme={"light"}>
                         {
@@ -76,7 +97,8 @@ export function ChatComponent() {
                         }
                         <List className={"room-list"} itemLayout={"horizontal"}>
                             {roomList.map((room: ChatRoom) => (
-                                <List.Item key={room.id} onClick={() => roomClick(room.id)} className={currentRoomId == room.id ? 'room-list-item-checked' : 'room-list-item'}>
+                                <List.Item key={room.id} onClick={() => roomClick(room.id)}
+                                           className={currentRoomId == room.id ? 'room-list-item-checked' : 'room-list-item'}>
                                     <List.Item.Meta
                                         avatar={<Avatar src={room.roomAvatar}/>}
                                         title={<p className={"room-title"}>{room.roomName}</p>}

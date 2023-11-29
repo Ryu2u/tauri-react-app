@@ -31,6 +31,33 @@ impl MsgType {
   }
 }
 
+impl ChatMessage {
+  pub fn new() -> Self{
+    ChatMessage{
+      id: "".to_string(),
+      chat_room_id: 0,
+      sender_id: 0,
+      content: "".to_string(),
+      images_path: "".to_string(),
+      files_path: "".to_string(),
+      videos_path: "".to_string(),
+      send_time: 0,
+      created_time: 0,
+      sender_name: "".to_string(),
+      receiver_id: 0,
+      is_read: false,
+      chat_room_name: "".to_string(),
+      read_count: 0,
+      receiver_count: 0,
+      image_path_list: vec![],
+      file_path_list: vec![],
+      video_path_list: vec![]
+    }
+
+  }
+
+}
+
 
 #[cfg(test)]
 mod test {

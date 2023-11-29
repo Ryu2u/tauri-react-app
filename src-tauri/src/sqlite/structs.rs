@@ -97,13 +97,13 @@
     #[derive(Clone, Serialize, Deserialize, Debug)]
     #[allow(non_snake_case)]
     pub struct ChatMessage{
-        id:String,
-        roomId:i32,
-        senderId:i32,
-        senderName:String,
-        content:String,
-        senderAvatar:String,
-        sendTime:i64,
-        createdBy:i32,
-        createdTime:i64
+       pub id:Option<String>,
+       pub roomId:Option<i32>,
+       pub senderId:Option<i32>,
+       pub senderName:Option<String>,
+       pub content:Option<String>,
+       pub senderAvatar:Option<String>,
+       pub sendTime:Option<i64>,
+       pub createdBy:Option<i32>,
+       pub createdTime:Option<i64>
     }

@@ -25,14 +25,13 @@ export function RoomComponent() {
     const [chatContent, setChatContent] = useState(null);
 
     useEffect(() => {
-
         scrollToBottom(true);
-
     }, [chatContent])
 
     useEffect(() => {
         setLoading(true);
         setHasMore(true);
+        setLastScrollHeight(0);
 
         invoke('get_room_info', {
             roomId: param['id']
@@ -40,6 +39,7 @@ export function RoomComponent() {
             setRoom(res.data);
             setLoading(false);
         });
+
 
         invoke('get_sys_time', {}).then((res: R) => {
             if (res.code == 200) {
@@ -52,8 +52,6 @@ export function RoomComponent() {
                         if (res.data.length > 0) {
                             setMessageList(res.data);
                             setLatestTime(res.data[0].sendTime);
-                            scrollOldHeight();
-                            scrollToBottom(false);
                             if (res.data.length < 10) {
                                 setHasMore(false);
                             }
@@ -63,7 +61,6 @@ export function RoomComponent() {
                     }
                 })
             }
-
         });
 
 
@@ -118,8 +115,9 @@ export function RoomComponent() {
         }
         console.log("sen_msg -->");
         console.log(html);
-        emit('msg_send', {
-            msg: html
+        emit('group_msg_send', {
+            roomId: room.id,
+            content: html
         }).then(v => {
             vditor!.setValue("");
         });
@@ -192,18 +190,23 @@ export function RoomComponent() {
                             </div>
                             {
                                 messageList.map((msg: ChatMessage) => (
-                                    <div key={msg.id} className={msg.senderId == currentUserId ? "message chat_right" : "message chat_left"}>
-                                        <div className={msg.senderId == currentUserId ? "chat_right_content" : "chat_left_content"}>
+                                    <div key={msg.id}
+                                         className={msg.senderId == currentUserId ? "message chat_right" : "message chat_left"}>
+                                        <div
+                                            className={msg.senderId == currentUserId ? "chat_right_content" : "chat_left_content"}>
                                             <Avatar
                                                 className={msg.senderId == currentUserId ? "right_avatar" : "left_avatar"}
                                                 src={msg.senderAvatar}
                                                 gap={3}
                                                 size={"large"}
                                             />
-                                            <div className={msg.senderId == currentUserId ? "chat_right_time" : "chat_left_time"}>
-                                                {msg.sendTime % 10 == 0 ? new Date(msg.sendTime).toLocaleString('chinese', {hour12: false}) : <span>&nbsp;</span>}
+                                            <div
+                                                className={msg.senderId == currentUserId ? "chat_right_time" : "chat_left_time"}>
+                                                {msg.sendTime % 10 == 0 ? new Date(msg.sendTime).toLocaleString('chinese', {hour12: false}) :
+                                                    <span>&nbsp;</span>}
                                             </div>
-                                            <div className={msg.senderId == currentUserId ? "chat_right_msg" : "chat_left_msg"}>
+                                            <div
+                                                className={msg.senderId == currentUserId ? "chat_right_msg" : "chat_left_msg"}>
                                                 <div>
                                                     {msg.content}
                                                 </div>
@@ -220,7 +223,16 @@ export function RoomComponent() {
                             handleClasses={{top: 'resize-div'}}
                             minHeight={201}
                             maxHeight={"70%"}
-                            enable={{top: true, right: false, bottom: false, left: false, topRight: false, bottomRight: false, bottomLeft: false, topLeft: false}}
+                            enable={{
+                                top: true,
+                                right: false,
+                                bottom: false,
+                                left: false,
+                                topRight: false,
+                                bottomRight: false,
+                                bottomLeft: false,
+                                topLeft: false
+                            }}
                         >
                             <Footer id={"footer"}>
                                 <VditorEdit getVditor={(e) => setVditor(e)}/>

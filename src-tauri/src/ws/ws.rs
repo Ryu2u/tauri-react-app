@@ -2,18 +2,20 @@ use std::any::Any;
 use std::ops::Deref;
 use std::sync::Arc;
 use futures_util::SinkExt;
+use futures_util::stream::SplitSink;
 use rbatis::RBatis;
+use rbatis::rbdc::Uuid;
 use tauri::{AppHandle, Event, Manager, State, Wry};
 use tauri::async_runtime::handle;
+use tokio::net::TcpStream;
 use tokio::task::block_in_place;
-use tokio_tungstenite::{
-    tungstenite::Result,
-};
+use tokio_tungstenite::{MaybeTlsStream, tungstenite::Result, WebSocketStream};
+use tokio_tungstenite::tungstenite::Message;
 use entity::chat_message_pack::Obj;
-use entity::{ChatMessagePack, LoginMessage, MsgType, ProstMessage};
+use entity::{ChatMessagePack, GroupMessage, LoginMessage, MsgType, ProstMessage};
 use crate::{ConnectedEnum, system_tray_flicker, WsConnectFlag};
 use crate::sqlite::sqlite::sqlite::get_token;
-use crate::sqlite::User;
+use crate::sqlite::{ChatMessage, User};
 
 /// WebSocket连接
 #[tauri::command]
@@ -83,42 +85,49 @@ Result<()> {
     let handle_read = app_handle.clone();
     let handle = app_handle.clone();
 
+    listen_group_msg(handle,handle_write,mutex_write);
+
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
-    let _event = handle_write.listen_global("msg_send", move |event: Event| {
-        println!("GOT Front msg!");
-        let msg = event.payload().unwrap();
-        let mutex_write = mutex_write.clone();
-        let handle = handle.clone();
-        block_in_place(move || {
-            let mutex_write = mutex_write.clone();
-            tauri::async_runtime::block_on(async move {
-                let user_state: State<'_, User> = handle.try_state().unwrap();
-                println!("Send : {}", msg);
-                println!("{:?}", *user_state);
-
-                let obj = Obj::LoginMessage(LoginMessage {
-                    user_id: user_state.id,
-                    username: msg.to_string(),
-                });
-
-                let rb_state: State<'_, RBatis> = handle.try_state().unwrap();
-                let token = get_token(&rb_state).await;
-
-                let pack = ChatMessagePack::new(token.as_str(), MsgType::LoginMessageType, Some(obj));
-                let len = ProstMessage::encoded_len(&pack);
-                let mut buf: Vec<u8> = vec![];
-                buf.reserve(len);
-                pack.encode(&mut buf).unwrap();
-                println!("{:?}", buf);
-                // 发送消息
-                if let Ok(_) = mutex_write.lock().await.send(Message::binary(buf)).await {
-                    println!("发送成功!");
-                } else {
-                    println!("发送失败!");
-                }
-            });
-        });
-    });
+    // let _event = handle_write.listen_global("msg_send", move |event: Event| {
+    //     println!("GOT Front msg!");
+    //     let chat_msg_json = event.payload().unwrap();
+    //     println!("payload == >");
+    //     println!("{:?}", chat_msg_json);
+    //     let msg: Result<ChatMessage,_> = serde_json::from_str(chat_msg_json);
+    //     println!("{:?}",msg);
+    //
+    //     let mutex_write = mutex_write.clone();
+    //     let handle = handle.clone();
+    //     block_in_place(move || {
+    //         let mutex_write = mutex_write.clone();
+    //         tauri::async_runtime::block_on(async move {
+    //             let user_state: State<'_, User> = handle.try_state().unwrap();
+    //             println!("Send : {}", chat_msg_json);
+    //             println!("{:?}", *user_state);
+    //
+    //             let obj = Obj::LoginMessage(LoginMessage {
+    //                 user_id: user_state.id,
+    //                 username: chat_msg_json.to_string(),
+    //             });
+    //
+    //             let rb_state: State<'_, RBatis> = handle.try_state().unwrap();
+    //             let token = get_token(&rb_state).await;
+    //
+    //             let pack = ChatMessagePack::new(token.as_str(), MsgType::LoginMessageType, Some(obj));
+    //             let len = ProstMessage::encoded_len(&pack);
+    //             let mut buf: Vec<u8> = vec![];
+    //             buf.reserve(len);
+    //             pack.encode(&mut buf).unwrap();
+    //             println!("{:?}", buf);
+    //             // 发送消息
+    //             if let Ok(_) = mutex_write.lock().await.send(Message::binary(buf)).await {
+    //                 println!("发送成功!");
+    //             } else {
+    //                 println!("发送失败!");
+    //             }
+    //         });
+    //     });
+    // });
 
     let guard = state.connected.clone();
     // 异步任务，循环读
@@ -149,4 +158,64 @@ Result<()> {
     });
 
     Ok(())
+}
+
+
+
+type WebSocketWriter = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>,Message>;
+
+fn listen_group_msg(handle: AppHandle<Wry>,handle_write:AppHandle<Wry>,
+                    mutex_write:Arc<tokio::sync::Mutex<WebSocketWriter>>){
+    // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
+    let _event = handle_write.listen_global("group_msg_send", move |event: Event| {
+        println!("GOT Group msg payload ==> ");
+        let chat_msg_json = event.payload().unwrap();
+        println!("{:?}", chat_msg_json);
+        let mut msg: ChatMessage = serde_json::from_str(chat_msg_json).expect("can't \
+        resolve ChatMessage");
+        println!("{:?}", msg);
+        let uuid = Uuid::new();
+        let id = uuid.0;
+
+        msg.id.replace(id);
+
+        let mutex_write = mutex_write.clone();
+        let handle = handle.clone();
+        block_in_place(move || {
+            let mutex_write = mutex_write.clone();
+            tauri::async_runtime::block_on(async move {
+                let user_state: State<'_, User> = handle.try_state().unwrap();
+                println!("Send : {}", chat_msg_json);
+                println!("{:?}", *user_state);
+
+                let mut chat_message = entity::message::ChatMessage::new();
+                chat_message.id = msg.id.take().expect("id can't take");
+                chat_message.chat_room_id = msg.roomId.take().expect("roomId can't take");
+                chat_message.content = msg.content.take().expect("content can't take");
+                chat_message.sender_id = user_state.id;
+
+                let obj = Obj::GroupMessage(GroupMessage{
+                    group_id: chat_message.chat_room_id.clone(),
+                    group_name: "".to_string(),
+                    chat_message: Some(chat_message)
+                });
+
+                let rb_state: State<'_, RBatis> = handle.try_state().unwrap();
+                let token = get_token(&rb_state).await;
+                let pack = ChatMessagePack::new(token.as_str(), MsgType::GroupMessageType, Some(obj));
+                let len = ProstMessage::encoded_len(&pack);
+                let mut buf: Vec<u8> = vec![];
+                buf.reserve(len);
+                pack.encode(&mut buf).unwrap();
+                println!("{:?}", buf);
+                // 发送消息
+                if let Ok(_) = mutex_write.lock().await.send(Message::binary(buf)).await {
+                    println!("发送成功!");
+                } else {
+                    println!("发送失败!");
+                }
+            });
+        });
+    });
+
 }
