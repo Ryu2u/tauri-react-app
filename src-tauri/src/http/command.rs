@@ -196,7 +196,21 @@
                 Ok(res)
             }
             Err(e) => {
-                println!("Error");
+                println!("Error get_user_info");
+                Err(e)
+            }
+        }
+    }
+
+    #[tauri::command]
+    pub async fn get_sys_time(state: State<'_, RBatis>, app_handle: AppHandle<Wry>) -> Result<HttpResult<i64>,HttpError>{
+        match http_get::<i64>("/chat-message/time".to_string(), state, app_handle.clone()).await {
+            Ok(res) => {
+                println!("{:?}", res);
+                Ok(res)
+            }
+            Err(e) => {
+                println!("Error get_sys_time");
                 Err(e)
             }
         }

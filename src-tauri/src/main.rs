@@ -24,7 +24,7 @@ mod sqlite;
 
 use ws::connect_websocket;
 use command::{greet, route_to_admin, back_to_login};
-use http::{login, get_user_info, get_chat_room_list, get_room_info, check_login, room_msg_list};
+use http::{login, get_user_info, get_chat_room_list, get_room_info, check_login, room_msg_list, get_sys_time};
 
 
 use crate::sqlite::sqlite::sqlite::delete_token_if_not_remember;
@@ -80,7 +80,8 @@ async fn main() {
             get_chat_room_list,
             get_room_info,
             check_login,
-            room_msg_list
+            room_msg_list,
+            get_sys_time
     ])
         // 配置系统托盘
         .system_tray(tray)

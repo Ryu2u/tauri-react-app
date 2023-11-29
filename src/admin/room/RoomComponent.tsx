@@ -41,27 +41,31 @@ export function RoomComponent() {
             setLoading(false);
         });
 
-        let sendTime = new Date().getTime()
-        console.log("sendTime : " + sendTime);
-
-        invoke('room_msg_list', {
-            roomId: param['id'],
-            sendTime: sendTime.toString()
-        }).then((res: R) => {
+        invoke('get_sys_time', {}).then((res: R) => {
             if (res.code == 200) {
-                if (res.data.length > 0) {
-                    setMessageList(res.data);
-                    setLatestTime(res.data[0].sendTime);
-                    scrollOldHeight();
-                    scrollToBottom(false);
-                    if (res.data.length < 10) {
-                        setHasMore(false);
+                let sendTime: number = res.data;
+                invoke('room_msg_list', {
+                    roomId: param['id'],
+                    sendTime: sendTime.toString()
+                }).then((res: R) => {
+                    if (res.code == 200) {
+                        if (res.data.length > 0) {
+                            setMessageList(res.data);
+                            setLatestTime(res.data[0].sendTime);
+                            scrollOldHeight();
+                            scrollToBottom(false);
+                            if (res.data.length < 10) {
+                                setHasMore(false);
+                            }
+                        } else {
+                            setHasMore(false);
+                        }
                     }
-                } else {
-                    setHasMore(false);
-                }
+                })
             }
-        })
+
+        });
+
 
         invoke('get_user_info', {}).then((res: R) => {
             if (res.code == 200) {
