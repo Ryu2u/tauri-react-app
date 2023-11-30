@@ -26,13 +26,13 @@ export function ChatComponent() {
                 const id = url.substring(i + 1);
                 setCurrentRoomId(parseInt(id));
             }
-
         }
 
         listen('msg_read', (event) => {
-            console.log("Get Msg --> ")
-            console.log(event.payload);
+            // console.log("Get Msg --> ")
+            // console.log(event.payload);
         }).then();
+
         invoke('get_chat_room_list', {}).then((res: R) => {
             console.log(res);
             setRoomList(res.data);

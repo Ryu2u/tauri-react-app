@@ -1,111 +1,119 @@
-    use std::env;
-    use rbatis::RBatis;
-    use reqwest::{Error, header, Response};
-    use serde::de::DeserializeOwned;
-    use serde::{ Serialize};
-    use tauri::{ AppHandle, Manager, State, Wry};
-    use crate::{back_to_login};
-    use crate::sqlite::structs::{ HttpError, HttpResult};
-    use crate::sqlite::sqlite::sqlite::{delete_token, get_token};
+use std::env;
+use rbatis::RBatis;
+use reqwest::{Error, header, Response};
+use serde::de::DeserializeOwned;
+use serde::{Serialize};
+use tauri::{AppHandle, Manager, State, Wry};
+use crate::{back_to_login, WsConnectFlag};
+use crate::sqlite::structs::{HttpError, HttpResult};
+use crate::sqlite::sqlite::sqlite::{delete_token, get_token};
 
-    const AUTH_HEADER: &str = "Authorization";
-    const TOKEN_BEARER: &str = "Bearer ";
+const AUTH_HEADER: &str = "Authorization";
+const TOKEN_BEARER: &str = "Bearer ";
 
 
-    /// Http Get 请求接口 返回json格式
-    pub async fn http_get<T: DeserializeOwned>(path: String, state: State<'_, RBatis>,
+/// Http Get 请求接口 返回json格式
+pub async fn http_get<T: DeserializeOwned>(path: String, state: State<'_, RBatis>,
                                            app_handle: AppHandle<Wry>)
                                            ->
                                            Result<HttpResult<T>, HttpError> {
-        let token = get_token(&*state).await;
+    let token = get_token(&*state).await;
 
-        let client = reqwest::Client::new();
-        let url = format!("http://localhost:9090{}", path);
-        let res = client.get(url)
-            .header(AUTH_HEADER, format!("{}{}", TOKEN_BEARER, token))
-            .send().await;
+    let client = reqwest::Client::new();
+    let url = format!("http://localhost:9090{}", path);
+    let res = client.get(url)
+        .header(AUTH_HEADER, format!("{}{}", TOKEN_BEARER, token))
+        .send().await;
 
-        handle_response(res, app_handle).await
-    }
+    handle_response(res, app_handle).await
+}
 
 
-    /// Http Post 请求接口 返回json格式
-    pub async fn http_post<T: DeserializeOwned, E: Serialize + ?Sized>(path: String, state:
-    State<'_,
-        RBatis>, json: &E, app_handle: AppHandle<Wry>) ->
+/// Http Post 请求接口 返回json格式
+pub async fn http_post<T: DeserializeOwned, E: Serialize + ?Sized>(path: String, state:
+State<'_,
+    RBatis>, json: &E, app_handle: AppHandle<Wry>) ->
                                                                    Result<HttpResult<T>, HttpError> {
-        let token = get_token(&*state).await;
-        let client = reqwest::Client::new();
-        let host = env::var("HTTP_URL").expect("env file don't exists HTTP_URL");
-        let url = format!("{}{}", host, path);
-        let res = client.post(url)
-            .header(AUTH_HEADER, format!("{}{}", TOKEN_BEARER, token))
-            .json(json)
-            .send().await;
+    let token = get_token(&*state).await;
+    let client = reqwest::Client::new();
+    let host = env::var("HTTP_URL").expect("env file don't exists HTTP_URL");
+    let url = format!("{}{}", host, path);
+    let res = client.post(url)
+        .header(AUTH_HEADER, format!("{}{}", TOKEN_BEARER, token))
+        .json(json)
+        .send().await;
 
-        handle_response(res, app_handle).await
-    }
+    handle_response(res, app_handle).await
+}
 
-    pub async fn http_post_no_auth<T: DeserializeOwned, E: Serialize + ?Sized>(path: String, json:
+pub async fn http_post_no_auth<T: DeserializeOwned, E: Serialize + ?Sized>(path: String, json:
 &E, app_handle: AppHandle<Wry>) ->
-    Result<HttpResult<T>, HttpError> {
-        let client = reqwest::Client::new();
-        let host = env::var("HTTP_URL").expect("env file don't exists HTTP_URL");
-        let url = format!("{}{}", host, path);
-        let res = client.post(url)
-            .header(header::ACCEPT, "application/json")
-            .header(header::CONTENT_TYPE, "application/json")
-            .json(json)
-            .send().await;
-        handle_response(res, app_handle).await
-    }
+                                                                           Result<HttpResult<T>, HttpError> {
+    let client = reqwest::Client::new();
+    let host = env::var("HTTP_URL").expect("env file don't exists HTTP_URL");
+    let url = format!("{}{}", host, path);
+    let res = client.post(url)
+        .header(header::ACCEPT, "application/json")
+        .header(header::CONTENT_TYPE, "application/json")
+        .json(json)
+        .send().await;
+    handle_response(res, app_handle).await
+}
 
 
-    /// 处理http 响应
-    pub async fn handle_response<T: DeserializeOwned>(res: Result<Response, Error>, app_handle:
+/// 处理http 响应
+pub async fn handle_response<T: DeserializeOwned>(res: Result<Response, Error>, app_handle:
 AppHandle<Wry>) -> Result<HttpResult<T>, HttpError> {
-        match res {
-            Ok(response) => {
-                let json = response.json::<HttpResult<T>>().await;
-                match json {
-                    Ok(data) => {
-                        println!("http code : {:?}", data.code);
-                        if data.code == 403 || data.code == 401 {
-                            if let None = app_handle.get_window("login") {
-                                let windows = app_handle.clone().windows();
-                                for key in windows.keys() {
-                                    let app_clone = app_handle.clone();
-                                    let window_opt = windows.get(key);
-                                    if let Some(window) = window_opt {
-                                        tauri::api::dialog::confirm(Some(&window), "Tauri", "令牌已过期，请重新登录!",
-                                                                    move
-                                                                        |answer| {
-                                                                        if answer {
-                                                                            tauri::async_runtime::block_on(async move {
-                                                                                let state: State<'_, RBatis> = app_clone.try_state().unwrap();
-                                                                                delete_token(state).await;
-                                                                                back_to_login(app_clone);
-                                                                            });
-                                                                        }
-                                                                    });
-                                    }
-                                    break;
+    match res {
+        Ok(response) => {
+            let json = response.json::<HttpResult<T>>().await;
+            match json {
+                Ok(data) => {
+                    println!("http code : {:?}", data.code);
+                    if data.code == 403 || data.code == 401 {
+                        let flag_state:State<'_,WsConnectFlag> =  app_handle.state();
+                        let lock = flag_state.connected.lock().await;
+                        if let None = app_handle.get_window("login") {
+                            let windows = app_handle.clone().windows();
+                            let key_opt = windows.keys().next();
+                            if let Some(key) = key_opt {
+                                let app_clone = app_handle.clone();
+                                let window_opt = windows.get(key);
+                                if let Some(window) = window_opt {
+                                    tauri::api::dialog::confirm(Some(&window), "Tauri", "令牌已过期，请重新登录!",
+                                                                move
+                                                                    |answer| {
+                                                                    if answer {
+                                                                        tauri::async_runtime::block_on(async move {
+                                                                            let state: State<'_, RBatis> = app_clone.try_state().unwrap();
+                                                                            delete_token(state).await;
+                                                                            back_to_login(app_clone);
+                                                                        });
+                                                                    }
+                                                                });
                                 }
                             }
                         }
-                        Ok(data)
+                        match *lock {
+                            _ => {
+                                println!("释放锁!");
+                            }
+                        }
+                        drop(lock);
                     }
-                    Err(e) => {
-                        println!("反序列化失败! -> {:?}", e);
-                        Err(HttpError::CustomError("Error".to_string()))
-                    }
+                    Ok(data)
+                }
+                Err(e) => {
+                    println!("反序列化失败! -> {:?}", e);
+                    Err(HttpError::CustomError("Error".to_string()))
                 }
             }
-            Err(_e) => {
-                println!("读取响应失败!");
-                Err(HttpError::CustomError("http error".to_string()))
-            }
+        }
+        Err(_e) => {
+            println!("读取响应失败!");
+            Err(HttpError::CustomError("http error".to_string()))
         }
     }
+}
 
 

@@ -38,6 +38,7 @@ pub enum ConnectedEnum {
 /// 保存于 Tauri State 中
 /// 用于判断当前WebSocket是否已经在连接中
 /// 防止重复调用
+/// 此State 也可以作为全局锁使用,不过由于是异步锁,只能在异步函数中使用，
 pub struct WsConnectFlag {
     connected: Arc<tokio::sync::Mutex<ConnectedEnum>>,
 }

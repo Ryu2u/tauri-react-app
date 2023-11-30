@@ -36,7 +36,6 @@
     pub async fn check_login(user_id: i32, conn_state: State<'_, WsConnectFlag>,
                              app_handle: AppHandle<Wry>) -> Result<(),
         HttpError> {
-        let lock = conn_state.connected.lock().await;
 
         let mut sqlite_url = env::var("SQLITE_URL").unwrap();
         sqlite_url = format!("{}{}.db", sqlite_url, user_id);
@@ -48,12 +47,11 @@
             app_handle.manage(rb);
             if let None = app_handle.get_window("main") {
                 println!("main 不存在!");
-                route_to_admin(app_handle);
+                route_to_admin(app_handle).await;
             } else {
                 println!("main 已存在!");
             }
         }
-        drop(lock);
         Ok(())
     }
 

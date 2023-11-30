@@ -5,6 +5,7 @@ import {CloseOutlined, FullscreenOutlined, MinusOutlined, SettingOutlined} from 
 import {appWindow} from "@tauri-apps/api/window";
 import {Avatar} from "antd";
 import {invoke} from "@tauri-apps/api";
+import {User} from "../entity/Entity";
 
 
 export function AdminComponent() {
@@ -14,7 +15,12 @@ export function AdminComponent() {
     useEffect(() => {
         console.log("connecting to websocket")
         invoke('connect_websocket', {}).then();
-        invoke('get_user_info',{}).then();
+        invoke('get_user_info',{}).then((res:R) => {
+            if (res.code == 200){
+                let user:User = res.data;
+                localStorage.setItem("user_info",JSON.stringify(user));
+            }
+        });
     },[]);
 
 
@@ -37,9 +43,6 @@ export function AdminComponent() {
     }
 
     function routeToChat() {
-        invoke('get_user_info', {}).then(v => {
-            console.log(v);
-        });
         navigate('/admin/chat');
     }
 
