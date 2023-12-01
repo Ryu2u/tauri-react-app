@@ -162,7 +162,7 @@ fn handle_ws_read(handle_read: AppHandle<Wry>,
                 system_tray_flicker(&handle_read);
                 if msg.is_text() {
                     println!("GOT  TEXT : {}", msg);
-                    handle_read.emit_all("msg_read", msg.into_text().unwrap()).expect("read msg failed");
+                    // handle_read.emit_all("msg_read", msg.into_text().unwrap()).expect("read msg failed");
                 } else if msg.is_binary() {
                     let data = msg.into_data();
                     let obj: ChatMessagePack = entity::ProstMessage::decode(&*data).unwrap();
