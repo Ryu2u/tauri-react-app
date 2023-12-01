@@ -108,28 +108,31 @@ message ChatMessage{
   // 发送人的名称
   string senderName = 11;
 
+  string senderAvatar = 12;
   // 接收人id
-  int32 receiverId = 12;
+  int32 receiverId = 13;
 
   // 是否已读
-  bool isRead = 13;
+  bool isRead = 14;
 
   // 聊天室名称
-  string chatRoomName = 14;
+  string chatRoomName = 15;
 
   // 已读消息人数
-  int32 readCount = 15;
+  int32 readCount = 16;
+
+  reserved 17,18,19,20;
 
   // 接收消息总人数
-  int32 receiverCount = 16;
+  int32 receiverCount = 21;
 
   // 图片路径集合
-  repeated string imagePathList = 17;
+  repeated string imagePathList = 22;
 
   // 文件路径集合
-  repeated string filePathList = 18;
+  repeated string filePathList = 23;
 
   // 视频路径集合
-  repeated string videoPathList = 19;
+  repeated string videoPathList = 24;
 
 }

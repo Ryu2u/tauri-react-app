@@ -3,11 +3,9 @@
     use std::env;
     use std::fs::File;
     use std::io::Read;
-    use std::sync::Arc;
     use rbatis::RBatis;
     use rbdc_sqlite::SqliteDriver;
     use tauri::{ AppHandle, Manager, State, Wry};
-    use crate::{WsConnectFlag};
     use crate::command::route_to_admin;
     use crate::sqlite::{AuthHeader, ChatMessage, ChatRoom, HttpError, HttpResult, User};
     use crate::sqlite::sqlite::sqlite::get_token;
@@ -33,7 +31,7 @@
 
 
     #[tauri::command]
-    pub async fn check_login(user_id: i32, conn_state: State<'_, WsConnectFlag>,
+    pub async fn check_login(user_id: i32,
                              app_handle: AppHandle<Wry>) -> Result<(),
         HttpError> {
 

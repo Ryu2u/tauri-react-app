@@ -145,29 +145,31 @@ pub struct ChatMessage {
     /// 发送人的名称
     #[prost(string, tag = "11")]
     pub sender_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub sender_avatar: ::prost::alloc::string::String,
     /// 接收人id
-    #[prost(int32, tag = "12")]
+    #[prost(int32, tag = "13")]
     pub receiver_id: i32,
     /// 是否已读
-    #[prost(bool, tag = "13")]
+    #[prost(bool, tag = "14")]
     pub is_read: bool,
     /// 聊天室名称
-    #[prost(string, tag = "14")]
+    #[prost(string, tag = "15")]
     pub chat_room_name: ::prost::alloc::string::String,
     /// 已读消息人数
-    #[prost(int32, tag = "15")]
+    #[prost(int32, tag = "16")]
     pub read_count: i32,
     /// 接收消息总人数
-    #[prost(int32, tag = "16")]
+    #[prost(int32, tag = "21")]
     pub receiver_count: i32,
     /// 图片路径集合
-    #[prost(string, repeated, tag = "17")]
+    #[prost(string, repeated, tag = "22")]
     pub image_path_list: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     /// 文件路径集合
-    #[prost(string, repeated, tag = "18")]
+    #[prost(string, repeated, tag = "23")]
     pub file_path_list: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     /// 视频路径集合
-    #[prost(string, repeated, tag = "19")]
+    #[prost(string, repeated, tag = "24")]
     pub video_path_list: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(serde::Serialize, serde::Deserialize)]

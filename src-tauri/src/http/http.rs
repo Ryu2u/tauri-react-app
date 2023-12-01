@@ -47,8 +47,7 @@ State<'_,
 }
 
 pub async fn http_post_no_auth<T: DeserializeOwned, E: Serialize + ?Sized>(path: String, json:
-&E, app_handle: AppHandle<Wry>) ->
-                                                                           Result<HttpResult<T>, HttpError> {
+&E, app_handle: AppHandle<Wry>) -> Result<HttpResult<T>, HttpError> {
     let client = reqwest::Client::new();
     let host = env::var("HTTP_URL").expect("env file don't exists HTTP_URL");
     let url = format!("{}{}", host, path);

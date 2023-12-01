@@ -44,6 +44,7 @@ impl ChatMessage {
       send_time: 0,
       created_time: 0,
       sender_name: "".to_string(),
+      sender_avatar: "".to_string(),
       receiver_id: 0,
       is_read: false,
       chat_room_name: "".to_string(),
@@ -53,9 +54,7 @@ impl ChatMessage {
       file_path_list: vec![],
       video_path_list: vec![]
     }
-
   }
-
 }
 
 

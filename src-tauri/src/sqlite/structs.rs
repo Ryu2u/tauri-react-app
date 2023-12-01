@@ -7,6 +7,7 @@
     #[derive(Debug)]
     pub enum HttpError {
         CustomError(String),
+        #[allow(dead_code)]
         RequestError(StatusCode),
     }
 

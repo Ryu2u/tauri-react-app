@@ -1,5 +1,4 @@
 pub mod command {
-    use std::thread;
     use tauri::{Manager, State, Window, Wry};
     use tauri::{AppHandle};
     use window_shadows::set_shadow;

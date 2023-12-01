@@ -1,20 +1,14 @@
-use std::any::Any;
-use std::fmt::format;
-use std::ops::Deref;
-use std::sync::{Arc, Mutex};
-use fast_log::print;
+use std::sync::{Arc};
 use futures_util::SinkExt;
 use futures_util::stream::{SplitSink, SplitStream};
 use rbatis::RBatis;
-use rbatis::rbdc::Uuid;
-use tauri::{App, AppHandle, Event, EventHandler, Manager, State, Wry};
-use tauri::async_runtime::handle;
+use tauri::{ AppHandle, Event, EventHandler, Manager, State, Wry};
 use tokio::net::TcpStream;
 use tokio::task::block_in_place;
 use tokio_tungstenite::{MaybeTlsStream, tungstenite::Result, WebSocketStream};
 use tokio_tungstenite::tungstenite::Message;
 use entity::chat_message_pack::Obj;
-use entity::{ChatMessagePack, GroupMessage, LoginMessage, MsgType, ProstMessage};
+use entity::{ChatMessagePack, GroupMessage,  MsgType, ProstMessage};
 use crate::{ConnectedEnum, system_tray_flicker, WsConnectFlag};
 use crate::sqlite::sqlite::sqlite::get_token;
 use crate::sqlite::{ChatMessage, User};
@@ -33,10 +27,9 @@ async fn connect_ws_async(app_handle: &AppHandle<Wry>, state: State<'_, WsConnec
 Result<()> {
     use url::Url;
     use futures_util::{StreamExt};
-    use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+    use tokio_tungstenite::{connect_async };
     use tokio::sync::Mutex;
     use std::env;
-    use std::sync::Arc;
 
     let ws_url = env::var("WS_URL").expect("can not find .env -> WS_URL");
     let url = Url::parse(&ws_url).expect("bad url!");
@@ -177,7 +170,6 @@ fn handle_ws_read(handle_read: AppHandle<Wry>,
                     println!("GOT  BINARY: {:?}", obj);
                     println!(">>>>>>>>>>>>>>>>>>>>>>>>>>>");
                     // todo! 根据不同的消息类型返回不同的事件
-
                     let obj_data = obj.obj.unwrap();
                     match obj_data {
                         Obj::GroupMessage(msg) => {
@@ -194,6 +186,7 @@ fn handle_ws_read(handle_read: AppHandle<Wry>,
                     }
                 }
             } else {
+                //取消全局事件监听
                 handle_read.unlisten(group_event);
                 {
                     let mut flag = guard.lock().await;
