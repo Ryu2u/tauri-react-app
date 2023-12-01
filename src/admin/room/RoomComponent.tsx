@@ -68,6 +68,7 @@ export function RoomComponent() {
                     if (res.code == 200) {
                         if (res.data.length > 0) {
                             msgList.current = res.data;
+                            msgList.current.forEach( v => v.isSend=true);
                             setMessageList([...msgList.current]);
                             setLoading(false);
                             setLatestTime(res.data[0].sendTime);
@@ -148,6 +149,7 @@ export function RoomComponent() {
                 if (res.data.length > 0) {
                     let arr: ChatMessage[] = res.data;
                     for (let i = arr.length - 1; i >= 0; i--) {
+                        arr[i].isSend = true;
                         msgList.current.unshift(arr[i]);
                     }
                     console.log(msgList.current);
@@ -169,10 +171,11 @@ export function RoomComponent() {
     }
 
     function sendMsg() {
-        const html = vditor!.getValue()!;
+        let html:string = vditor!.getHTML()!;
         if (!html || html == "") {
             return;
         }
+        html  = html.substring(0,html.lastIndexOf("\n"));
         console.log("sen_msg -->");
         console.log(html);
         let user: User = JSON.parse(localStorage.getItem("user_info"));
@@ -187,7 +190,9 @@ export function RoomComponent() {
             msg.isSend = false;
             msgList.current.push(msg);
             setMessageList([...msgList.current]);
-            scrollToBottom(true);
+            setTimeout(() => {
+                scrollToBottom(true);
+            },100);
         });
     }
 
@@ -269,9 +274,11 @@ export function RoomComponent() {
                                                     <span>&nbsp;</span>}
                                             </div>
                                             <div className={msg.senderId == currentUserId ? "chat_right_msg" : "chat_left_msg"}>
-                                                <div>
-                                                    {msg.content}
-                                                </div>
+                                                <span className={"msg_content"} dangerouslySetInnerHTML={{
+                                                    __html: msg.content
+                                                }}>
+                                                    {/*{msg.content}*/}
+                                                </span>
                                             </div>
                                             {
                                                 msg.senderId == currentUserId &&

@@ -1,12 +1,13 @@
 use std::any::Any;
 use std::fmt::format;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use fast_log::print;
 use futures_util::SinkExt;
 use futures_util::stream::{SplitSink, SplitStream};
 use rbatis::RBatis;
 use rbatis::rbdc::Uuid;
-use tauri::{App, AppHandle, Event, Manager, State, Wry};
+use tauri::{App, AppHandle, Event, EventHandler, Manager, State, Wry};
 use tauri::async_runtime::handle;
 use tokio::net::TcpStream;
 use tokio::task::block_in_place;
@@ -77,6 +78,8 @@ Result<()> {
     // 将websocket分割为 写 和 读，可以单独分割使用
     let (write, read) = ws_stream.split();
 
+    // app_handle.manage(Mutex::new(write));
+
     // 需要将写包装为Arc，使其可以在线程中传递
     let mutex_write = Arc::new(Mutex::new(write));
     let mutex_read = Mutex::new(read);
@@ -85,9 +88,9 @@ Result<()> {
     let handle = app_handle.clone();
 
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
-    listen_group_msg(handle, app_handle.clone(), mutex_write.clone());
+    let event = listen_group_msg(handle, app_handle.clone(), mutex_write.clone());
 
-    handle_ws_read(app_handle.clone(), mutex_read, state);
+    handle_ws_read(app_handle.clone(), mutex_read, state, event);
 
     Ok(())
 }
@@ -97,16 +100,19 @@ type WebSocketWriter = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Mes
 type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
 fn listen_group_msg(handle: AppHandle<Wry>, handle_write: AppHandle<Wry>,
-                    mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>) {
+                    mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>) -> EventHandler {
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
-    let _event = handle_write.listen_global("group_msg_send", move |event: Event| {
+    let event = handle_write.listen_global("group_msg_send", move |event: Event| {
         println!("GOT Group msg payload ==> ");
         let chat_msg_json = event.payload().unwrap();
         println!("{:?}", chat_msg_json);
-        let mut msg: ChatMessage = serde_json::from_str(chat_msg_json).expect("can't \
-        resolve ChatMessage");
+        if let Err(e) = serde_json::from_str::<ChatMessage>(chat_msg_json) {
+            println!("{}", e);
+            println!("无法反序列化消息对象 --> {}", chat_msg_json);
+            return;
+        }
+        let mut msg: ChatMessage = serde_json::from_str(chat_msg_json).unwrap();
         println!("{:?}", msg);
-
         let mutex_write = mutex_write.clone();
         let handle = handle.clone();
         block_in_place(move || {
@@ -117,11 +123,25 @@ fn listen_group_msg(handle: AppHandle<Wry>, handle_write: AppHandle<Wry>,
                 println!("{:?}", *user_state);
 
                 let mut chat_message = entity::message::ChatMessage::new();
-                chat_message.id = msg.id.take().expect("id can't take");
-                chat_message.chat_room_id = msg.roomId.take().expect("roomId can't take");
-                chat_message.content = msg.content.take().expect("content can't take");
+                if let Some(id) = msg.id.take() {
+                    chat_message.id = id;
+                } else {
+                    println!("消息id 不存在!");
+                    return;
+                }
+                if let Some(content) = msg.content.take() {
+                    chat_message.content = content;
+                } else {
+                    println!("消息content 不存在!");
+                    return;
+                }
+                if let Some(room_id) = msg.roomId {
+                    chat_message.chat_room_id = room_id;
+                } else {
+                    println!("消息room_id 不存在!");
+                    return;
+                }
                 chat_message.sender_id = user_state.id;
-
                 let obj = Obj::GroupMessage(GroupMessage {
                     group_id: chat_message.chat_room_id.clone(),
                     group_name: "".to_string(),
@@ -131,12 +151,14 @@ fn listen_group_msg(handle: AppHandle<Wry>, handle_write: AppHandle<Wry>,
             });
         });
     });
+    event
 }
 
 /// 处理WebSocket 读事件
 fn handle_ws_read(handle_read: AppHandle<Wry>,
                   mutex_read: tokio::sync::Mutex<WebSocketReader>,
-                  state: State<'_, WsConnectFlag>) {
+                  state: State<'_, WsConnectFlag>,
+                  group_event: EventHandler) {
     use futures_util::{StreamExt};
     let guard = state.connected.clone();
     // 异步任务，循环读
@@ -172,6 +194,7 @@ fn handle_ws_read(handle_read: AppHandle<Wry>,
                     }
                 }
             } else {
+                handle_read.unlisten(group_event);
                 {
                     let mut flag = guard.lock().await;
                     *flag = ConnectedEnum::NO;
@@ -194,7 +217,7 @@ async fn send_ws_message(mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>,
     let mut buf: Vec<u8> = vec![];
     buf.reserve(len);
     pack.encode(&mut buf).unwrap();
-    println!("{:?}", buf);
+    // println!("{:?}", buf);
     // 发送消息
     if let Ok(_) = mutex_write.lock().await.send(Message::binary(buf)).await {
         println!("发送成功!");
