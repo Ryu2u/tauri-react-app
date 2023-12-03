@@ -71,7 +71,7 @@
     #[allow(non_snake_case)]
     pub struct User {
         pub id: i32,
-        username: String,
+        pub username: String,
         nickName: String,
         avatarPath: String,
         createdBy: i32,
@@ -91,6 +91,7 @@
         roomAvatar: String,
         isTop: bool,
         isView: bool,
+        unreadCount:i32
     }
     crud!(ChatRoom{},"tb_chat_room");
 

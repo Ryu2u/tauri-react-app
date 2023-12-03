@@ -1,19 +1,20 @@
-import React, {useEffect, useState} from "react";
-import {Avatar, Input, Layout, List} from "antd";
+import React, {useEffect, useRef, useState} from "react";
+import {Avatar, Badge, Input, Layout, List} from "antd";
 import Sider from "antd/es/layout/Sider";
 import "./ChatComponent.scss"
 import {SearchOutlined} from "@ant-design/icons";
 import {listen} from "@tauri-apps/api/event";
 import {Outlet, useNavigate} from "react-router";
 import {invoke} from "@tauri-apps/api";
-import {ChatRoom, R} from "../../entity/Entity.ts";
+import {ChatMessage, ChatRoom, ProtoChatMessage, R} from "../../entity/Entity.ts";
 import {Resizable} from "re-resizable";
 
 export function ChatComponent() {
 
     const [searchBarVisible, setSearchBarVisible] = useState(false);
     const navigate = useNavigate();
-    const [roomList, setRoomList] = useState([]);
+    const chatRoomListRef = useRef<ChatRoom[]>([]);
+    const [roomList, setRoomList] = useState<ChatRoom[]>([]);
     const [currentRoomId, setCurrentRoomId] = useState(-1);
 
     useEffect(() => {
@@ -36,11 +37,34 @@ export function ChatComponent() {
         invoke('get_chat_room_list', {}).then((res: R) => {
             console.log(res);
             setRoomList(res.data);
+            chatRoomListRef.current = res.data;
             console.log("roomList -> ")
             console.log(roomList);
         });
 
     }, []);
+
+    useEffect(() => {
+
+        const unlisten = listen('msg_read', event => {
+            console.log("msg_read => ")
+            let chatMsg: ProtoChatMessage = event.payload;
+            if (chatMsg.chat_room_id == currentRoomId) {
+                return;
+            }
+            let list = [...chatRoomListRef.current];
+            list.forEach(r => {
+                if (r.id == chatMsg.chat_room_id) {
+                    r.unreadCount++;
+                }
+            });
+            setRoomList(list);
+        });
+
+        return () => {
+            unlisten.then(f => f());
+        }
+    }, [currentRoomId]);
 
 
     function sideMouseUpEvent(event: React.WheelEvent<HTMLDivElement>) {
@@ -105,6 +129,9 @@ export function ChatComponent() {
                                         description={"123"}
                                     >
                                     </List.Item.Meta>
+                                    <div>
+                                        <Badge count={room.unreadCount} offset={[-5, 25]}/>
+                                    </div>
                                 </List.Item>
                             ))}
                         </List>

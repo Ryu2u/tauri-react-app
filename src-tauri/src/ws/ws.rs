@@ -3,12 +3,13 @@ use futures_util::SinkExt;
 use futures_util::stream::{SplitSink, SplitStream};
 use rbatis::RBatis;
 use tauri::{ AppHandle, Event, EventHandler, Manager, State, Wry};
+use tauri::async_runtime::handle;
 use tokio::net::TcpStream;
 use tokio::task::block_in_place;
 use tokio_tungstenite::{MaybeTlsStream, tungstenite::Result, WebSocketStream};
 use tokio_tungstenite::tungstenite::Message;
 use entity::chat_message_pack::Obj;
-use entity::{ChatMessagePack, GroupMessage,  MsgType, ProstMessage};
+use entity::{ChatMessagePack, GroupMessage, LoginMessage, MsgType, ProstMessage};
 use crate::{ConnectedEnum, system_tray_flicker, WsConnectFlag};
 use crate::sqlite::sqlite::sqlite::get_token;
 use crate::sqlite::{ChatMessage, User};
@@ -71,17 +72,27 @@ Result<()> {
     // 将websocket分割为 写 和 读，可以单独分割使用
     let (write, read) = ws_stream.split();
 
-    // app_handle.manage(Mutex::new(write));
-
     // 需要将写包装为Arc，使其可以在线程中传递
     let mutex_write = Arc::new(Mutex::new(write));
     let mutex_read = Mutex::new(read);
 
-    // let handle_read = app_handle.clone();
-    let handle = app_handle.clone();
+    // todo login websocket 登录消息发送
+    let user_state: State<'_, User> = app_handle.try_state().unwrap();
+
+    let obj = Obj::LoginMessage(LoginMessage {
+        user_id: user_state.id,
+        username: user_state.username.clone()
+    });
+
+    let login_write = mutex_write.clone();
+    block_in_place(move ||{
+        tauri::async_runtime::block_on(async move {
+            send_ws_message(login_write,app_handle.clone(),MsgType::LoginMessageType,obj).await;
+        });
+    });
 
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
-    let event = listen_group_msg(handle, app_handle.clone(), mutex_write.clone());
+    let event = listen_group_msg( app_handle.clone(), mutex_write.clone());
 
     handle_ws_read(app_handle.clone(), mutex_read, state, event);
 
@@ -92,9 +103,10 @@ Result<()> {
 type WebSocketWriter = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>;
 type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
-fn listen_group_msg(handle: AppHandle<Wry>, handle_write: AppHandle<Wry>,
+fn listen_group_msg( handle_write: AppHandle<Wry>,
                     mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>) -> EventHandler {
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
+    let handle = handle_write.clone();
     let event = handle_write.listen_global("group_msg_send", move |event: Event| {
         println!("GOT Group msg payload ==> ");
         let chat_msg_json = event.payload().unwrap();

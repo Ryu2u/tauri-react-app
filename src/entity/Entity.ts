@@ -20,6 +20,7 @@ export class ChatRoom {
     roomAvatar!: string;
     isTop!: boolean;
     isView!: boolean;
+    unreadCount: number = 100;
 }
 
 export class ChatMessage {
@@ -42,6 +43,7 @@ export class ProtoChatMessage {
     content!: string;
     sender_id!: number;
     sender_name!: string;
+    sender_avatar!: string;
     receiver_id!: number;
     receiver_count!: number;
     read_count!: number;
@@ -49,11 +51,11 @@ export class ProtoChatMessage {
     send_time!: number;
 }
 
-export class ProtoAckMessage{
-    code!:number;
-    msg_content!:string;
-    msg_id!:string;
-    room_id!:number;
-    user_id!:number;
-    msg_type!:number;
+export class ProtoAckMessage {
+    code!: number;
+    msg_content!: string;
+    msg_id!: string;
+    room_id!: number;
+    user_id!: number;
+    msg_type!: number;
 }

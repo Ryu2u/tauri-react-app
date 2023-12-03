@@ -1,4 +1,4 @@
-import {Component, useEffect, useState} from "react";
+import { useEffect} from "react";
 import "./AdminComponent.scss"
 import {Outlet, useNavigate} from "react-router";
 import {CloseOutlined, FullscreenOutlined, MinusOutlined, SettingOutlined} from "@ant-design/icons";
@@ -14,11 +14,11 @@ export function AdminComponent() {
 
     useEffect(() => {
         console.log("connecting to websocket")
-        invoke('connect_websocket', {}).then();
         invoke('get_user_info',{}).then((res:R) => {
             if (res.code == 200){
                 let user:User = res.data;
                 localStorage.setItem("user_info",JSON.stringify(user));
+                invoke('connect_websocket', {}).then();
             }
         });
     },[]);

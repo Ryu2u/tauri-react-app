@@ -6,13 +6,11 @@ import VditorEdit from "../../components/VditorEdit.tsx";
 import {useEffect, useRef, useState} from "react";
 import Vditor from "vditor";
 import {emit, listen} from "@tauri-apps/api/event";
-import {useAsyncError, useParams} from "react-router";
+import { useParams} from "react-router";
 import {ChatMessage, ChatRoom, ProtoAckMessage, ProtoChatMessage, R, User} from "../../entity/Entity.ts";
 import {invoke} from "@tauri-apps/api";
-import {render} from "react-dom";
-import {log} from "vditor/dist/ts/util/log";
 import {uuid} from "../../common/constant";
-import {Loading3QuartersOutlined, LoadingOutlined} from "@ant-design/icons";
+import {Loading3QuartersOutlined} from "@ant-design/icons";
 
 
 export function RoomComponent() {
@@ -51,6 +49,8 @@ export function RoomComponent() {
     useEffect(() => {
         setLoading(true);
         setHasMore(true);
+        setMessageList([]);
+        msgList.current = [];
         setLastScrollHeight(0);
         invoke('get_room_info', {
             roomId: param['id']
@@ -70,7 +70,6 @@ export function RoomComponent() {
                             msgList.current = res.data;
                             msgList.current.forEach( v => v.isSend=true);
                             setMessageList([...msgList.current]);
-                            setLoading(false);
                             setLatestTime(res.data[0].sendTime);
                             if (res.data.length < 10) {
                                 setHasMore(false);
@@ -78,6 +77,7 @@ export function RoomComponent() {
                         } else {
                             setHasMore(false);
                         }
+                        setLoading(false);
                     }
                 })
             }
@@ -93,17 +93,24 @@ export function RoomComponent() {
 
 
     useEffect(() => {
+
+        console.log("room -> url");
+        console.log(window.location.toString());
+
         const unlisten = listen('msg_read', event => {
             console.log("msg_read => ")
             let chatMsg: ProtoChatMessage = event.payload;
             let newMsg: ChatMessage = new ChatMessage();
-            newMsg.id = chatMsg.id;
-            newMsg.content = chatMsg.content;
-            newMsg.roomId = chatMsg.chat_room_id;
-            newMsg.sendTime = chatMsg.send_time;
-            newMsg.senderId = chatMsg.sender_id;
-            newMsg.senderAvatar = "https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures/f8f7390913fc461efc15497dfeeb0cc6.png";
-            addNewMsg(newMsg);
+            console.log(`newMsg.roomId ${chatMsg.chat_room_id}`);
+            if (chatMsg.chat_room_id.toString() == param['id']){
+                newMsg.id = chatMsg.id;
+                newMsg.content = chatMsg.content;
+                newMsg.roomId = chatMsg.chat_room_id;
+                newMsg.sendTime = chatMsg.send_time;
+                newMsg.senderId = chatMsg.sender_id;
+                newMsg.senderAvatar = chatMsg.sender_avatar;
+                addNewMsg(newMsg);
+            }
         });
 
         const unlisten_ack = listen('msg_ack', event => {
@@ -123,7 +130,7 @@ export function RoomComponent() {
             unlisten.then(f => f());
             unlisten_ack.then(f => f());
         }
-    }, []);
+    }, [param]);
 
     function addNewMsg(newMsg: ChatMessage) {
         let arr = msgList.current.filter(v => v.id == newMsg.id);
