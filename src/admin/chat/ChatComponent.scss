@@ -40,6 +40,7 @@
 
 #side-bar {
   &::-webkit-scrollbar {
+    display: none;
     background: transparent; // 滑块颜色
     width: 5px;
   }

@@ -3,7 +3,6 @@ use futures_util::SinkExt;
 use futures_util::stream::{SplitSink, SplitStream};
 use rbatis::RBatis;
 use tauri::{ AppHandle, Event, EventHandler, Manager, State, Wry};
-use tauri::async_runtime::handle;
 use tokio::net::TcpStream;
 use tokio::task::block_in_place;
 use tokio_tungstenite::{MaybeTlsStream, tungstenite::Result, WebSocketStream};
@@ -76,11 +75,11 @@ Result<()> {
     let mutex_write = Arc::new(Mutex::new(write));
     let mutex_read = Mutex::new(read);
 
-    // todo login websocket 登录消息发送
+    // login websocket 登录消息发送
     let user_state: State<'_, User> = app_handle.try_state().unwrap();
 
     let obj = Obj::LoginMessage(LoginMessage {
-        user_id: user_state.id,
+        user_id: user_state.id.clone(),
         username: user_state.username.clone()
     });
 
@@ -146,7 +145,7 @@ fn listen_group_msg( handle_write: AppHandle<Wry>,
                     println!("消息room_id 不存在!");
                     return;
                 }
-                chat_message.sender_id = user_state.id;
+                chat_message.sender_id = user_state.id.clone();
                 let obj = Obj::GroupMessage(GroupMessage {
                     group_id: chat_message.chat_room_id.clone(),
                     group_name: "".to_string(),

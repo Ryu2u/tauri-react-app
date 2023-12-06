@@ -18,7 +18,7 @@ export function ChatComponent() {
     const [currentRoomId, setCurrentRoomId] = useState(-1);
 
     useEffect(() => {
-        console.log("url");
+        console.log("admin -> url");
         console.log(window.location.toString());
         const url: string = window.location.toString();
         if (url.includes("/chat/room/")) {
@@ -45,16 +45,16 @@ export function ChatComponent() {
     }, []);
 
     useEffect(() => {
-
         const unlisten = listen('msg_read', event => {
             console.log("msg_read => ")
-            let chatMsg: ProtoChatMessage = event.payload;
-            if (chatMsg.chat_room_id == currentRoomId) {
-                return;
-            }
+            let chatMsg: ProtoChatMessage | unknown = event.payload;
             let list = [...chatRoomListRef.current];
             list.forEach(r => {
                 if (r.id == chatMsg.chat_room_id) {
+                    r.latestMsg = chatMsg.content;
+                    if (chatMsg.chat_room_id == currentRoomId) {
+                        return;
+                    }
                     r.unreadCount++;
                 }
             });
@@ -84,6 +84,11 @@ export function ChatComponent() {
         navigate(`/admin/chat/room/${id}`);
     }
 
+    function setLatestMsg(msg:string) :string{
+        const span = document.createElement("span");
+        span.innerHTML = msg;
+        return span.innerText;
+    }
 
     return (
         <>
@@ -126,7 +131,7 @@ export function ChatComponent() {
                                     <List.Item.Meta
                                         avatar={<Avatar src={room.roomAvatar}/>}
                                         title={<p className={"room-title"}>{room.roomName}</p>}
-                                        description={"123"}
+                                        description={<p className={"room-title"}>{room.latestMsg?setLatestMsg(room.latestMsg):<span>&nbsp;</span>}</p>}
                                     >
                                     </List.Item.Meta>
                                     <div>

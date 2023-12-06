@@ -4,14 +4,13 @@ import {Avatar, Button, Spin} from "antd";
 import {Resizable} from "re-resizable";
 import VditorEdit from "../../components/VditorEdit.tsx";
 import {useEffect, useRef, useState} from "react";
-import Vditor from "vditor";
 import {emit, listen} from "@tauri-apps/api/event";
-import { useParams} from "react-router";
+import {useParams} from "react-router";
 import {ChatMessage, ChatRoom, ProtoAckMessage, ProtoChatMessage, R, User} from "../../entity/Entity.ts";
 import {invoke} from "@tauri-apps/api";
 import {uuid} from "../../common/constant";
 import {Loading3QuartersOutlined} from "@ant-design/icons";
-
+import Vditor from "vditor";
 
 export function RoomComponent() {
     const [vditor, setVditor] = useState<Vditor>();
@@ -19,6 +18,7 @@ export function RoomComponent() {
     const param = useParams();
     const [loading, setLoading] = useState(true);
     const [messageList, setMessageList] = useState<ChatMessage[]>([]);
+    const [getMsgLoading, setGetMsgLoading] = useState(false);
 
     const msgList = useRef<ChatMessage[]>([]);
     const [currentUserId, setCurrentUserId] = useState(-1);
@@ -34,10 +34,10 @@ export function RoomComponent() {
     }, [chatContent]);
     useEffect(() => {
         if (chatContent) {
-            console.log(`scrollTop : ${chatContent.scrollTop}`)
-            console.log(`scrollHeight : ${chatContent.scrollHeight}`)
-            console.log(`clientHeight :${chatContent.clientHeight}`)
-            console.log("----");
+            // console.log(`scrollTop : ${chatContent.scrollTop}`)
+            // console.log(`scrollHeight : ${chatContent.scrollHeight}`)
+            // console.log(`clientHeight :${chatContent.clientHeight}`)
+            // console.log("----");
         }
         if (isBottom) {
             scrollToBottom(false);
@@ -68,7 +68,7 @@ export function RoomComponent() {
                     if (res.code == 200) {
                         if (res.data.length > 0) {
                             msgList.current = res.data;
-                            msgList.current.forEach( v => v.isSend=true);
+                            msgList.current.forEach(v => v.isSend = true);
                             setMessageList([...msgList.current]);
                             setLatestTime(res.data[0].sendTime);
                             if (res.data.length < 10) {
@@ -93,16 +93,16 @@ export function RoomComponent() {
 
 
     useEffect(() => {
-
         console.log("room -> url");
         console.log(window.location.toString());
-
         const unlisten = listen('msg_read', event => {
             console.log("msg_read => ")
-            let chatMsg: ProtoChatMessage = event.payload;
+            console.log(typeof event.payload)
+            console.log(event.payload)
+            let chatMsg: ProtoChatMessage | unknown = event.payload;
             let newMsg: ChatMessage = new ChatMessage();
             console.log(`newMsg.roomId ${chatMsg.chat_room_id}`);
-            if (chatMsg.chat_room_id.toString() == param['id']){
+            if (chatMsg.chat_room_id.toString() == param['id']) {
                 newMsg.id = chatMsg.id;
                 newMsg.content = chatMsg.content;
                 newMsg.roomId = chatMsg.chat_room_id;
@@ -114,7 +114,7 @@ export function RoomComponent() {
         });
 
         const unlisten_ack = listen('msg_ack', event => {
-            let ackMsg: ProtoAckMessage = event.payload;
+            let ackMsg: ProtoAckMessage | unknown = event.payload;
             if (ackMsg.code == 200) {
                 const msg_id = ackMsg.msg_id;
                 msgList.current.forEach(v => {
@@ -158,31 +158,31 @@ export function RoomComponent() {
                     for (let i = arr.length - 1; i >= 0; i--) {
                         arr[i].isSend = true;
                         msgList.current.unshift(arr[i]);
+                        // todo 判断当前消息是已读状态还是未读状态，若为已读状态，则发送已读消息，同时减少当前聊天室的未读消息数量
                     }
                     console.log(msgList.current);
-                    setMessageList([]);
+                    // setMessageList([]);
                     setMessageList([...msgList.current]);
                     setLatestTime(res.data[0].sendTime);
                     scrollOldHeight();
-
                     if (arr.length < 10) {
                         setHasMore(false);
                     }
                 } else {
                     setHasMore(false);
                 }
-                // console.log(messageList);
                 console.log("latestTime : " + latestTime);
+                setGetMsgLoading(false);
             }
         })
     }
 
     function sendMsg() {
-        let html:string = vditor!.getHTML()!;
+        let html: string = vditor!.getHTML()!;
         if (!html || html == "") {
             return;
         }
-        html  = html.substring(0,html.lastIndexOf("\n"));
+        html = html.substring(0, html.lastIndexOf("\n"));
         console.log("sen_msg -->");
         console.log(html);
         let user: User = JSON.parse(localStorage.getItem("user_info"));
@@ -199,12 +199,13 @@ export function RoomComponent() {
             setMessageList([...msgList.current]);
             setTimeout(() => {
                 scrollToBottom(true);
-            },100);
+            }, 100);
         });
     }
 
-    function getMoreMsg(event: Event) {
+    function getMoreMsg(event?: Event) {
         console.log("more");
+        setGetMsgLoading(true);
         getMessageList(latestTime.toString());
     }
 
@@ -229,11 +230,14 @@ export function RoomComponent() {
     }
 
     function scrollOldHeight() {
-        console.log(`scrollTop : ${chatContent.scrollTop}`)
-        console.log(`scrollHeight : ${chatContent.scrollHeight}`)
-        console.log(`clientHeight :${chatContent.clientHeight}`)
         chatContent.scrollTop = 20;
         setLastScrollHeight(chatContent.scrollHeight);
+    }
+
+    function chatContentWheel(event: React.WheelEvent) {
+        if (chatContent && chatContent.scrollTop == 0 && !getMsgLoading && hasMore) {
+            getMoreMsg();
+        }
     }
 
 
@@ -251,13 +255,16 @@ export function RoomComponent() {
                                 {room ? room.roomName : ''}
                             </p>
                         </Header>
-                        <Content id={"chatContent"} ref={setChatContent}>
+                        <Content id={"chatContent"} onWheel={e => chatContentWheel(e)} ref={setChatContent}>
                             <div className="more-msg">
                                 {
                                     hasMore ?
-                                        <a onClick={(e) => getMoreMsg(e)}>
-                                            显示更多消息
-                                        </a>
+                                        getMsgLoading ?
+                                            <Loading3QuartersOutlined spin={true}/>
+                                            :
+                                            <a onClick={(e) => getMoreMsg(e)}>
+                                                显示更多消息
+                                            </a>
                                         :
                                         <span>
                                         没有更多消息

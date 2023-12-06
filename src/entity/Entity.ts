@@ -21,6 +21,7 @@ export class ChatRoom {
     isTop!: boolean;
     isView!: boolean;
     unreadCount: number = 100;
+    latestMsg:string;
 }
 
 export class ChatMessage {
