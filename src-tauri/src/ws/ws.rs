@@ -2,7 +2,7 @@ use std::sync::{Arc};
 use futures_util::SinkExt;
 use futures_util::stream::{SplitSink, SplitStream};
 use rbatis::RBatis;
-use tauri::{ AppHandle, Event, EventHandler, Manager, State, Wry};
+use tauri::{AppHandle, Event, EventHandler, Manager, State, Wry};
 use tokio::net::TcpStream;
 use tokio::task::block_in_place;
 use tokio_tungstenite::{MaybeTlsStream, tungstenite::Result, WebSocketStream};
@@ -27,7 +27,7 @@ async fn connect_ws_async(app_handle: &AppHandle<Wry>, state: State<'_, WsConnec
 Result<()> {
     use url::Url;
     use futures_util::{StreamExt};
-    use tokio_tungstenite::{connect_async };
+    use tokio_tungstenite::{connect_async};
     use tokio::sync::Mutex;
     use std::env;
 
@@ -80,34 +80,45 @@ Result<()> {
 
     let obj = Obj::LoginMessage(LoginMessage {
         user_id: user_state.id.clone(),
-        username: user_state.username.clone()
+        username: user_state.username.clone(),
     });
 
     let login_write = mutex_write.clone();
-    block_in_place(move ||{
+    block_in_place(move || {
         tauri::async_runtime::block_on(async move {
-            send_ws_message(login_write,app_handle.clone(),MsgType::LoginMessageType,obj).await;
+            send_ws_message(login_write, app_handle.clone(), MsgType::LoginMessageType, obj).await;
         });
     });
 
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
-    let event = listen_group_msg( app_handle.clone(), mutex_write.clone());
+    let event = listen_group_msg(app_handle.clone(), mutex_write.clone());
+    let ack_event = listen_ack_msg(app_handle.clone(), mutex_write.clone());
 
-    handle_ws_read(app_handle.clone(), mutex_read, state, event);
+    handle_ws_read(app_handle.clone(), mutex_read, state, vec![event, ack_event]);
 
     Ok(())
 }
 
-
 type WebSocketWriter = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>;
 type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
-fn listen_group_msg( handle_write: AppHandle<Wry>,
+fn listen_ack_msg(handle_write: AppHandle<Wry>,
+                  mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>) -> EventHandler {
+    let event = handle_write.listen_global("ack_msg_send", move |event: Event| {
+        println!("GOT ACK MSG PAYLOAD ==> ");
+        let ack_msg_json = event.payload().unwrap();
+        println!("{}", ack_msg_json);
+    });
+    event
+}
+
+
+fn listen_group_msg(handle_write: AppHandle<Wry>,
                     mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>) -> EventHandler {
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
     let handle = handle_write.clone();
     let event = handle_write.listen_global("group_msg_send", move |event: Event| {
-        println!("GOT Group msg payload ==> ");
+        println!("GOT GROUP MSG PAYLOAD ==> ");
         let chat_msg_json = event.payload().unwrap();
         println!("{:?}", chat_msg_json);
         if let Err(e) = serde_json::from_str::<ChatMessage>(chat_msg_json) {
@@ -162,7 +173,7 @@ fn listen_group_msg( handle_write: AppHandle<Wry>,
 fn handle_ws_read(handle_read: AppHandle<Wry>,
                   mutex_read: tokio::sync::Mutex<WebSocketReader>,
                   state: State<'_, WsConnectFlag>,
-                  group_event: EventHandler) {
+                  event_vec: Vec<EventHandler>) {
     use futures_util::{StreamExt};
     let guard = state.connected.clone();
     // 异步任务，循环读
@@ -190,6 +201,9 @@ fn handle_ws_read(handle_read: AppHandle<Wry>,
                             handle_read.emit_all("msg_read", chat_msg).expect
                             ("read msg failed");
                         }
+                        Obj::ResponseMessage(resp) => {
+                            handle_read.emit_all("msg_response", resp).expect("can't emit msg_response");
+                        }
                         Obj::AckMessage(ack) => {
                             handle_read.emit_all("msg_ack", ack).expect("can't emit msg_ack");
                         }
@@ -198,7 +212,9 @@ fn handle_ws_read(handle_read: AppHandle<Wry>,
                 }
             } else {
                 //取消全局事件监听
-                handle_read.unlisten(group_event);
+                for event in event_vec.iter() {
+                    handle_read.unlisten(*event);
+                }
                 {
                     let mut flag = guard.lock().await;
                     *flag = ConnectedEnum::NO;

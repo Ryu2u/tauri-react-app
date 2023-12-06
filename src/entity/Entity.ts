@@ -60,3 +60,9 @@ export class ProtoAckMessage {
     user_id!: number;
     msg_type!: number;
 }
+
+export class ProtoResponseMessage{
+    code!:number;
+    msg!:string;
+    msg_id!:string;
+}

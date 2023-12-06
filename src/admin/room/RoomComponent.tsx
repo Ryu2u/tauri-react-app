@@ -6,7 +6,7 @@ import VditorEdit from "../../components/VditorEdit.tsx";
 import {useEffect, useRef, useState} from "react";
 import {emit, listen} from "@tauri-apps/api/event";
 import {useParams} from "react-router";
-import {ChatMessage, ChatRoom, ProtoAckMessage, ProtoChatMessage, R, User} from "../../entity/Entity.ts";
+import {ChatMessage, ChatRoom, ProtoAckMessage, ProtoChatMessage, ProtoResponseMessage, R, User} from "../../entity/Entity.ts";
 import {invoke} from "@tauri-apps/api";
 import {uuid} from "../../common/constant";
 import {Loading3QuartersOutlined} from "@ant-design/icons";
@@ -113,8 +113,8 @@ export function RoomComponent() {
             }
         });
 
-        const unlisten_ack = listen('msg_ack', event => {
-            let ackMsg: ProtoAckMessage | unknown = event.payload;
+        const unlisten_resp = listen('msg_response', event => {
+            let ackMsg: ProtoResponseMessage | unknown = event.payload;
             if (ackMsg.code == 200) {
                 const msg_id = ackMsg.msg_id;
                 msgList.current.forEach(v => {
@@ -128,7 +128,7 @@ export function RoomComponent() {
 
         return () => {
             unlisten.then(f => f());
-            unlisten_ack.then(f => f());
+            unlisten_resp.then(f => f());
         }
     }, [param]);
 
