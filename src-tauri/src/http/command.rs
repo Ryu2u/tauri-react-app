@@ -109,8 +109,7 @@ Result<HttpResult<String>, HttpError> {
     map.insert("publicKey", public_key);
 
     let res = http_post_no_auth::<AuthHeader, HashMap<&str, String>>("/login".to_string(),
-                                                                     &map, app_handle.clone())
-        .await;
+                                                                     &map, app_handle.clone()).await;
     match res {
         Ok(result) => {
             let auth = result.data.clone();

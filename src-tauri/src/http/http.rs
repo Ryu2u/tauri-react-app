@@ -70,28 +70,21 @@ AppHandle<Wry>) -> Result<HttpResult<T>, HttpError> {
                 Ok(data) => {
                     println!("http code : {:?}", data.code);
                     if data.code == 403 || data.code == 401 {
-                        let flag_state:State<'_,WsConnectFlag> =  app_handle.state();
+                        let flag_state: State<'_, WsConnectFlag> = app_handle.state();
                         let lock = flag_state.connected.lock().await;
                         if let None = app_handle.get_window("login") {
-                            let windows = app_handle.clone().windows();
-                            let key_opt = windows.keys().next();
-                            if let Some(key) = key_opt {
-                                let app_clone = app_handle.clone();
-                                let window_opt = windows.get(key);
-                                if let Some(window) = window_opt {
-                                    tauri::api::dialog::confirm(Some(&window), "Tauri", "令牌已过期，请重新登录!",
-                                                                move
-                                                                    |answer| {
-                                                                    if answer {
-                                                                        tauri::async_runtime::block_on(async move {
-                                                                            let state: State<'_, RBatis> = app_clone.try_state().unwrap();
-                                                                            delete_token(state).await;
-                                                                            back_to_login(app_clone);
-                                                                        });
-                                                                    }
-                                                                });
-                                }
-                            }
+                            let app_clone = app_handle.clone();
+                            let state: State<'_, RBatis> = app_clone.try_state().unwrap();
+                            delete_token(state).await;
+                            back_to_login(app_clone);
+                            let login_window = app_handle.get_window("login").unwrap();
+                            tauri::api::dialog::confirm(Some(&login_window), "Tauri", "令牌已过期，请重新登录!",
+                                                        move
+                                                            |answer| {
+                                                            if answer {
+                                                                tauri::async_runtime::block_on(async move {});
+                                                            }
+                                                        });
                         }
                         match *lock {
                             _ => {
