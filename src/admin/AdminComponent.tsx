@@ -1,4 +1,4 @@
-import { useEffect} from "react";
+import {useEffect} from "react";
 import "./AdminComponent.scss"
 import {Outlet, useNavigate} from "react-router";
 import {CloseOutlined, FullscreenOutlined, MinusOutlined, SettingOutlined} from "@ant-design/icons";
@@ -6,6 +6,7 @@ import {appWindow} from "@tauri-apps/api/window";
 import {Avatar} from "antd";
 import {invoke} from "@tauri-apps/api";
 import {User} from "../entity/Entity";
+import {USER_KEY} from "../common/constant";
 
 
 export function AdminComponent() {
@@ -14,14 +15,14 @@ export function AdminComponent() {
 
     useEffect(() => {
         console.log("connecting to websocket")
-        invoke('get_user_info',{}).then((res:R) => {
-            if (res.code == 200){
-                let user:User = res.data;
-                localStorage.setItem("user_info",JSON.stringify(user));
+        invoke('get_user_info', {}).then((res: R) => {
+            if (res.code == 200) {
+                let user: User = res.data;
+                localStorage.setItem(USER_KEY, user.id.toString());
                 invoke('connect_websocket', {}).then();
             }
         });
-    },[]);
+    }, []);
 
 
     function closeClick() {

@@ -1,4 +1,9 @@
 
+
+export const USER_KEY = "login_user_id";
+
+
+
 /**
  * 生成uuid
  */
@@ -14,7 +19,6 @@ export function uuid() {
   }
   return uuidValue;
 }
-
 
 
 

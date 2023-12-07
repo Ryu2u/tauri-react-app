@@ -5,6 +5,7 @@ import {appWindow} from "@tauri-apps/api/window";
 import {invoke} from "@tauri-apps/api";
 import {R} from "../entity/Entity";
 import {useEffect, useRef} from "react";
+import {USER_KEY} from "../common/constant";
 
 export function LoginComponent() {
 
@@ -12,7 +13,7 @@ export function LoginComponent() {
     const formRef = useRef<FormInstance>(null);
 
     useEffect(() => {
-        let userKey = localStorage.getItem("user-key");
+        let userKey = localStorage.getItem(USER_KEY);
         if (userKey) {
             let key = parseInt(userKey);
             invoke('check_login', {
@@ -21,7 +22,7 @@ export function LoginComponent() {
         }
 
         let username = localStorage.getItem("username");
-        if (username){
+        if (username) {
             formRef.current!.setFieldValue("username", username);
         }
 
@@ -65,7 +66,6 @@ export function LoginComponent() {
                             marginTop: '20px'
                         }
                     });
-                    localStorage.setItem("user-key", res.data);
                     localStorage.setItem("username", username);
                     setTimeout(() => {
                         invoke('route_to_admin', {}).then();

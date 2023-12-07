@@ -5,10 +5,10 @@ import {Resizable} from "re-resizable";
 import VditorEdit from "../../components/VditorEdit.tsx";
 import {useEffect, useRef, useState} from "react";
 import {emit, listen} from "@tauri-apps/api/event";
-import {useParams} from "react-router";
+import {useAsyncError, useParams} from "react-router";
 import {ChatMessage, ChatRoom, ProtoAckMessage, ProtoChatMessage, ProtoResponseMessage, R, User} from "../../entity/Entity.ts";
 import {invoke} from "@tauri-apps/api";
-import {uuid} from "../../common/constant";
+import {USER_KEY, uuid} from "../../common/constant";
 import {Loading3QuartersOutlined} from "@ant-design/icons";
 import Vditor from "vditor";
 
@@ -19,6 +19,7 @@ export function RoomComponent() {
     const [loading, setLoading] = useState(true);
     const [messageList, setMessageList] = useState<ChatMessage[]>([]);
     const [getMsgLoading, setGetMsgLoading] = useState(false);
+    const [currentRoomId, setCurrentRoomId] = useState(null);
 
     const msgList = useRef<ChatMessage[]>([]);
     const [currentUserId, setCurrentUserId] = useState(-1);
@@ -30,8 +31,10 @@ export function RoomComponent() {
 
 
     useEffect(() => {
+        console.log("init ")
         scrollToBottom(true);
     }, [chatContent]);
+
     useEffect(() => {
         if (chatContent) {
             // console.log(`scrollTop : ${chatContent.scrollTop}`)
@@ -47,6 +50,17 @@ export function RoomComponent() {
     }, [messageList]);
 
     useEffect(() => {
+        if (currentRoomId != param['id']) {
+            console.log("set id");
+            setCurrentRoomId(param['id']);
+        }
+    }, [param]);
+
+
+    useEffect(() => {
+        console.log("currentRoomId room -> " + currentRoomId);
+        let user_id: string = localStorage.getItem(USER_KEY);
+        setCurrentUserId(parseInt(user_id));
         setLoading(true);
         setHasMore(true);
         setMessageList([]);
@@ -61,35 +75,13 @@ export function RoomComponent() {
         invoke('get_sys_time', {}).then((res: R) => {
             if (res.code == 200) {
                 let sendTime: number = res.data;
-                invoke('room_msg_list', {
-                    roomId: param['id'],
-                    sendTime: sendTime.toString()
-                }).then((res: R) => {
-                    if (res.code == 200) {
-                        if (res.data.length > 0) {
-                            msgList.current = res.data;
-                            msgList.current.forEach(v => v.isSend = true);
-                            setMessageList([...msgList.current]);
-                            setLatestTime(res.data[0].sendTime);
-                            if (res.data.length < 10) {
-                                setHasMore(false);
-                            }
-                        } else {
-                            setHasMore(false);
-                        }
-                        setLoading(false);
-                    }
-                })
+                setMessageList([...msgList.current]);
+                getMessageList(sendTime.toString());
             }
         });
 
-        invoke('get_user_info', {}).then((res: R) => {
-            if (res.code == 200) {
-                setCurrentUserId(res.data.id);
-            }
-        });
 
-    }, [param]);
+    }, [currentRoomId]);
 
 
     useEffect(() => {
@@ -114,9 +106,9 @@ export function RoomComponent() {
         });
 
         const unlisten_resp = listen('msg_response', event => {
-            let ackMsg: ProtoResponseMessage | unknown = event.payload;
-            if (ackMsg.code == 200) {
-                const msg_id = ackMsg.msg_id;
+            let respMsg: ProtoResponseMessage | unknown = event.payload;
+            if (respMsg.code == 200) {
+                const msg_id = respMsg.msg_id;
                 msgList.current.forEach(v => {
                     if (v.id == msg_id) {
                         v.isSend = true;
@@ -130,20 +122,16 @@ export function RoomComponent() {
             unlisten.then(f => f());
             unlisten_resp.then(f => f());
         }
-    }, [param]);
+    }, [currentRoomId]);
 
     function addNewMsg(newMsg: ChatMessage) {
-        let arr = msgList.current.filter(v => v.id == newMsg.id);
-        if (arr.length <= 0) {
-            console.log("before -> ")
-            console.log(msgList.current)
-            console.log(newMsg.content);
-            msgList.current.push(newMsg);
-            console.log("after -> ")
-            console.log(msgList.current);
-            setMessageList([]);
-            setMessageList([...msgList.current]);
-        }
+        console.log("before -> ")
+        console.log(msgList.current)
+        console.log(newMsg.content);
+        msgList.current.push(newMsg);
+        console.log("after -> ")
+        console.log(msgList.current);
+        setMessageList([...msgList.current]);
     }
 
     function getMessageList(sendTime: string) {
@@ -152,27 +140,39 @@ export function RoomComponent() {
             sendTime: sendTime
         }).then((res: R) => {
             if (res.code == 200) {
-                console.log(res.data);
+                if (res.data.length < 10) {
+                    setHasMore(false);
+                }
                 if (res.data.length > 0) {
                     let arr: ChatMessage[] = res.data;
+                    arr = arr.filter(v => {
+                        for (let chatMessage of msgList.current) {
+                            if (chatMessage.id == v.id) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
                     for (let i = arr.length - 1; i >= 0; i--) {
                         arr[i].isSend = true;
                         msgList.current.unshift(arr[i]);
                         // todo 判断当前消息是已读状态还是未读状态，若为已读状态，则发送已读消息，同时减少当前聊天室的未读消息数量
+                        const user_id: string = localStorage.getItem(USER_KEY);
+                        const userId = parseInt(user_id);
+                        if (arr[i].senderId != userId && !arr[i].isRead) {
+                            console.log("current user id --> " + currentUserId);
+                            console.log("未读消息 --> " + arr[i].id);
+                            emit('ack_msg_send', arr[i]).then()
+                        }
                     }
+                    console.log("list -> ")
                     console.log(msgList.current);
-                    // setMessageList([]);
                     setMessageList([...msgList.current]);
                     setLatestTime(res.data[0].sendTime);
                     scrollOldHeight();
-                    if (arr.length < 10) {
-                        setHasMore(false);
-                    }
-                } else {
-                    setHasMore(false);
                 }
-                console.log("latestTime : " + latestTime);
                 setGetMsgLoading(false);
+                setLoading(false);
             }
         })
     }
@@ -230,8 +230,10 @@ export function RoomComponent() {
     }
 
     function scrollOldHeight() {
-        chatContent.scrollTop = 20;
-        setLastScrollHeight(chatContent.scrollHeight);
+        if (chatContent) {
+            chatContent.scrollTop = 20;
+            setLastScrollHeight(chatContent.scrollHeight);
+        }
     }
 
     function chatContentWheel(event: React.WheelEvent) {

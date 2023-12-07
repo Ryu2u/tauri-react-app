@@ -107,6 +107,7 @@ pub struct ChatMessage {
     pub content: Option<String>,
     pub senderAvatar: Option<String>,
     pub sendTime: Option<i64>,
+    pub isRead: Option<bool>,
     pub createdBy: Option<i32>,
     pub createdTime: Option<i64>,
 }

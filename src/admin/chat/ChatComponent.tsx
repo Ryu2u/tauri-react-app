@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from "react";
+import  {useEffect, useRef, useState} from "react";
 import {Avatar, Badge, Input, Layout, List} from "antd";
 import Sider from "antd/es/layout/Sider";
 import "./ChatComponent.scss"
@@ -6,7 +6,7 @@ import {SearchOutlined} from "@ant-design/icons";
 import {listen} from "@tauri-apps/api/event";
 import {Outlet, useNavigate} from "react-router";
 import {invoke} from "@tauri-apps/api";
-import {ChatMessage, ChatRoom, ProtoChatMessage, R} from "../../entity/Entity.ts";
+import {ChatMessage, ChatRoom, ProtoAckMessage, ProtoChatMessage, R} from "../../entity/Entity.ts";
 import {Resizable} from "re-resizable";
 
 export function ChatComponent() {
@@ -18,8 +18,8 @@ export function ChatComponent() {
     const [currentRoomId, setCurrentRoomId] = useState(-1);
 
     useEffect(() => {
-        console.log("admin -> url");
-        console.log(window.location.toString());
+        console.log("chatComponent : " + window.location.toString());
+
         const url: string = window.location.toString();
         if (url.includes("/chat/room/")) {
             const i = url.lastIndexOf("/");
@@ -28,11 +28,6 @@ export function ChatComponent() {
                 setCurrentRoomId(parseInt(id));
             }
         }
-
-        listen('msg_read', (event) => {
-            // console.log("Get Msg --> ")
-            // console.log(event.payload);
-        }).then();
 
         invoke('get_chat_room_list', {}).then((res: R) => {
             console.log(res);
@@ -45,6 +40,7 @@ export function ChatComponent() {
     }, []);
 
     useEffect(() => {
+        console.log("current Room -> " + currentRoomId);
         const unlisten = listen('msg_read', event => {
             console.log("msg_read => ")
             let chatMsg: ProtoChatMessage | unknown = event.payload;
@@ -61,8 +57,20 @@ export function ChatComponent() {
             setRoomList(list);
         });
 
+        const unlisten_ack = listen('msg_ack', event => {
+            let ackMsg: ProtoAckMessage | unknown = event.payload;
+            let list = [...chatRoomListRef.current];
+            list.forEach(r => {
+                if (r.id == ackMsg.room_id) {
+                    r.unreadCount--;
+                }
+            });
+            setRoomList(list);
+        });
+
         return () => {
             unlisten.then(f => f());
+            unlisten_ack.then(f => f());
         }
     }, [currentRoomId]);
 
@@ -84,7 +92,7 @@ export function ChatComponent() {
         navigate(`/admin/chat/room/${id}`);
     }
 
-    function setLatestMsg(msg:string) :string{
+    function setLatestMsg(msg: string): string {
         const span = document.createElement("span");
         span.innerHTML = msg;
         return span.innerText;
@@ -131,7 +139,7 @@ export function ChatComponent() {
                                     <List.Item.Meta
                                         avatar={<Avatar src={room.roomAvatar}/>}
                                         title={<p className={"room-title"}>{room.roomName}</p>}
-                                        description={<p className={"room-title"}>{room.latestMsg?setLatestMsg(room.latestMsg):<span>&nbsp;</span>}</p>}
+                                        description={<p className={"room-title"}>{room.latestMsg ? setLatestMsg(room.latestMsg) : <span>&nbsp;</span>}</p>}
                                     >
                                     </List.Item.Meta>
                                     <div>

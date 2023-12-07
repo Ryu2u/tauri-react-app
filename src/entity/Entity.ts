@@ -21,7 +21,7 @@ export class ChatRoom {
     isTop!: boolean;
     isView!: boolean;
     unreadCount: number = 100;
-    latestMsg:string;
+    latestMsg: string;
 }
 
 export class ChatMessage {
@@ -32,6 +32,7 @@ export class ChatMessage {
     senderName!: string;
     senderAvatar!: string;
     sendTime!: number;
+    isRead?: boolean;
     createdBy!: number;
     createdTime!: number;
     isSend: boolean = true;
@@ -61,8 +62,8 @@ export class ProtoAckMessage {
     msg_type!: number;
 }
 
-export class ProtoResponseMessage{
-    code!:number;
-    msg!:string;
-    msg_id!:string;
+export class ProtoResponseMessage {
+    code!: number;
+    msg!: string;
+    msg_id!: string;
 }

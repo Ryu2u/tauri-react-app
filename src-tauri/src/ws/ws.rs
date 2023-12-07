@@ -8,7 +8,7 @@ use tokio::task::block_in_place;
 use tokio_tungstenite::{MaybeTlsStream, tungstenite::Result, WebSocketStream};
 use tokio_tungstenite::tungstenite::Message;
 use entity::chat_message_pack::Obj;
-use entity::{ChatMessagePack, GroupMessage, LoginMessage, MsgType, ProstMessage};
+use entity::{AckMessage, ChatMessagePack, GroupMessage, LoginMessage, MsgType, ProstMessage};
 use crate::{ConnectedEnum, system_tray_flicker, WsConnectFlag};
 use crate::sqlite::sqlite::sqlite::get_token;
 use crate::sqlite::{ChatMessage, User};
@@ -93,7 +93,6 @@ Result<()> {
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
     let event = listen_group_msg(app_handle.clone(), mutex_write.clone());
     let ack_event = listen_ack_msg(app_handle.clone(), mutex_write.clone());
-
     handle_ws_read(app_handle.clone(), mutex_read, state, vec![event, ack_event]);
 
     Ok(())
@@ -104,10 +103,45 @@ type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
 fn listen_ack_msg(handle_write: AppHandle<Wry>,
                   mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>) -> EventHandler {
+    let handle = handle_write.clone();
     let event = handle_write.listen_global("ack_msg_send", move |event: Event| {
         println!("GOT ACK MSG PAYLOAD ==> ");
         let ack_msg_json = event.payload().unwrap();
         println!("{}", ack_msg_json);
+        let mut msg: ChatMessage = serde_json::from_str(ack_msg_json).unwrap();
+        if let None = msg.id {
+            println!("msg id is not exists");
+            return;
+        }
+        if let None = msg.roomId {
+            println!("msg room_id is not exists");
+            return;
+        }
+
+        let msg_id = msg.id.take().expect("msg id is not exists");
+        let room_id = msg.roomId.take().expect("msg room_id is not exists");
+
+        let handle = handle.clone();
+        let mutex_write = mutex_write.clone();
+        block_in_place(move || {
+            let mutex_write = mutex_write.clone();
+            tauri::async_runtime::block_on(async move {
+                let user_state: State<'_, User> = handle.try_state().unwrap();
+
+                let obj = Obj::AckMessage(AckMessage {
+                    code: 200,
+                    msg_content: "".to_string(),
+                    // required
+                    msg_id,
+                    // required
+                    room_id,
+                    // required
+                    user_id: user_state.id.clone(),
+                    msg_type: 0,
+                });
+                send_ws_message(mutex_write, handle, MsgType::AckMessageType, obj).await;
+            });
+        });
     });
     event
 }
