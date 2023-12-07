@@ -34,6 +34,10 @@ pub async fn check_login(user_id: i32, app_handle: AppHandle<Wry>) -> Result<(),
     HttpError> {
     let mut sqlite_url = env::var("SQLITE_URL").unwrap();
     sqlite_url = format!("{}{}.db", sqlite_url, user_id);
+    if let Err(_) = File::open(format!("../dbs/{}", sqlite_url)) {
+        return Ok(());
+    }
+
     let rb = RBatis::new();
     rb.init(SqliteDriver {}, sqlite_url.as_str()).unwrap();
     let rb_copy = rb.clone();
