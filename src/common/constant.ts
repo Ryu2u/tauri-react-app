@@ -1,6 +1,7 @@
 
 
 export const USER_KEY = "login_user_id";
+export const USER_AVATAR_PATH = "user_avatar_path";
 
 
 

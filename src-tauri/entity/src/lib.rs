@@ -71,13 +71,13 @@ mod test {
     });
     let mut pack = ChatMessagePack::new("123", MsgType::LoginMessageType, Some(obj));
     let len = Message::encoded_len(&pack);
-    println!("{}", len);
+    info!("{}", len);
     let mut buf: Vec<u8> = vec![];
     buf.reserve(len);
     pack.encode(&mut buf).unwrap();
-    println!("{:?}", buf);
+    info!("{:?}", buf);
     let back: ChatMessagePack = Message::decode(&*buf).unwrap();
 
-    println!("{:?}", back);
+    info!("{:?}", back);
   }
 }

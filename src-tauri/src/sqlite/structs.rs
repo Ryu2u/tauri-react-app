@@ -1,5 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
-use rbatis::crud;
+use std::sync::Arc;
+use log::{error};
+use rbatis::{crud, RBatis};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
@@ -15,13 +17,13 @@ impl Display for HttpError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             HttpError::RequestError(e) => {
-                eprintln!("{:?}", e);
+                error!("{:?}", e);
             }
             HttpError::CustomError(e) => {
-                eprintln!("{}", e);
+                error!("{}", e);
             }
         }
-        println!("发生错误!");
+        error!("发生错误!");
         write!(f, "custom error")
     }
 }
@@ -42,6 +44,16 @@ pub struct HttpResult<T> {
     pub code: i32,
     pub msg: String,
     pub data: Option<T>,
+}
+
+impl<T> HttpResult<T> {
+    pub fn new(code: i32, msg: &str, data: T) -> Self {
+        HttpResult {
+            code,
+            msg: msg.to_string(),
+            data: Some(data),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -110,4 +122,8 @@ pub struct ChatMessage {
     pub isRead: Option<bool>,
     pub createdBy: Option<i32>,
     pub createdTime: Option<i64>,
+}
+
+pub struct SqliteRbatis {
+    pub db: Arc<tokio::sync::Mutex<RBatis>>,
 }

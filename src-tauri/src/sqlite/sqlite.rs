@@ -1,7 +1,8 @@
 pub mod sqlite {
     use rbatis::RBatis;
     use tauri::State;
-    use crate::sqlite::AuthHeader;
+    use crate::sqlite::{AuthHeader, SqliteRbatis};
+    use log::{error, info};
 
     pub async fn get_token(rb: &RBatis) -> String {
         let res = AuthHeader::get_token(rb).await;
@@ -17,29 +18,27 @@ pub mod sqlite {
         }
     }
 
-    pub async fn delete_token(sql_state: State<'_, RBatis>){
+    pub async fn delete_token(sql_state: State<'_, SqliteRbatis>) {
+        let sql_state = sql_state.db.lock().await;
         let res = AuthHeader::delete_token(&*sql_state).await;
         res.unwrap();
     }
 
-    pub async fn delete_token_if_not_remember(sql_state: State<'_, RBatis>){
-        println!("尝试删除token");
-        let res = AuthHeader::get_token(&*sql_state).await;
+    pub async fn delete_token_if_not_remember(sql_state: State<'_, SqliteRbatis>) {
+        info!("尝试删除token");
+        let res = AuthHeader::get_token(&*sql_state.db.clone().lock().await).await;
         if let Ok(data) = res {
             if data.len() > 0 {
                 let x = data.get(0).unwrap();
                 if x.remember_me == 0 {
-                    println!("删除token。。。");
+                    info!("删除token。。。");
                     delete_token(sql_state).await;
                 }
             }
-
-        }else{
-            println!("获取token 失败!");
+        } else {
+            error!("获取token 失败!");
         }
-
     }
-
 
 
     #[cfg(test)]
@@ -63,7 +62,7 @@ pub mod sqlite {
             rb.init(SqliteDriver {}, sqlite_url.as_str()).unwrap();
 
             let data = User::select_by_id(&rb, 1).await;
-            println!("{:?}", data);
+            info!("{:?}", data);
         }
 
         #[tokio::test]
@@ -74,7 +73,7 @@ pub mod sqlite {
             let sqlite_url = env::var("SQLITE_URL").unwrap();
             rb.init(SqliteDriver {}, sqlite_url.as_str()).unwrap();
             let data = AuthHeader::get_token(&rb).await;
-            println!("{:?}", data);
+            info!("{:?}", data);
         }
 
         #[tokio::test]
@@ -85,7 +84,7 @@ pub mod sqlite {
             let sqlite_url = env::var("SQLITE_URL").unwrap();
             rb.init(SqliteDriver {}, sqlite_url.as_str()).unwrap();
             let data = AuthHeader::delete_token(&rb).await;
-            println!("{:?}", data);
+            info!("{:?}", data);
         }
     }
 }

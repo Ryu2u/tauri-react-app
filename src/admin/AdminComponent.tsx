@@ -1,17 +1,18 @@
-import {useEffect} from "react";
+import {useEffect, useState} from "react";
 import "./AdminComponent.scss"
 import {Outlet, useNavigate} from "react-router";
-import {CloseOutlined, FullscreenOutlined, MinusOutlined, SettingOutlined} from "@ant-design/icons";
+import {CloseOutlined, FullscreenOutlined, LogoutOutlined, MinusOutlined, SettingOutlined} from "@ant-design/icons";
 import {appWindow} from "@tauri-apps/api/window";
-import {Avatar} from "antd";
+import {Avatar, Dropdown, MenuProps} from "antd";
 import {invoke} from "@tauri-apps/api";
 import {User} from "../entity/Entity";
-import {USER_KEY} from "../common/constant";
+import {USER_AVATAR_PATH, USER_KEY} from "../common/constant";
 
 
 export function AdminComponent() {
 
     const navigate = useNavigate();
+    const [avatar, setAvatar] = useState('');
 
     useEffect(() => {
         console.log("connecting to websocket")
@@ -19,6 +20,8 @@ export function AdminComponent() {
             if (res.code == 200) {
                 let user: User = res.data;
                 localStorage.setItem(USER_KEY, user.id.toString());
+                localStorage.setItem(USER_AVATAR_PATH, user.avatarPath);
+                setAvatar(user.avatarPath);
                 invoke('connect_websocket', {}).then();
             }
         });
@@ -47,12 +50,50 @@ export function AdminComponent() {
         navigate('/admin/chat');
     }
 
+    const onClick: MenuProps['onClick'] = ({key}) => {
+        switch (key) {
+            case 'logout': {
+                // logout
+                console.log(key);
+
+                invoke('logout').then()
+
+                break;
+            }
+            case '0': {
+                break;
+            }
+            default: {
+                console.log(key);
+            }
+        }
+    };
+
+
+    const items: MenuProps['items'] = [
+        {
+            label: 'resolve',
+            key: '0',
+        },
+        {
+            type: 'divider',
+        },
+        {
+            label: <span>
+                <LogoutOutlined/> 退出登录
+            </span>,
+            key: 'logout',
+        },
+    ];
+
     return (
         <>
             <div data-tauri-drag-region className={"title-bar flex"}>
-                <div className={"btn-group setting"}>
-                    <SettingOutlined/>
-                </div>
+                <Dropdown menu={{items, onClick}} trigger={['click']}>
+                    <div className={"btn-group setting"}>
+                        <SettingOutlined/>
+                    </div>
+                </Dropdown>
                 <div className={"btn-group close"} onClick={closeClick}>
                     <MinusOutlined/>
                 </div>
@@ -68,7 +109,7 @@ export function AdminComponent() {
                     <ul>
                         <li onClick={routeToChat}>
                             <Avatar size={25}
-                                    src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}
+                                    src={avatar}
                             />
                         </li>
                     </ul>

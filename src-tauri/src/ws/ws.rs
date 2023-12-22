@@ -1,7 +1,7 @@
-use std::sync::{Arc};
+use std::sync::{Arc };
 use futures_util::SinkExt;
 use futures_util::stream::{SplitSink, SplitStream};
-use rbatis::RBatis;
+use log::{error, info};
 use tauri::{AppHandle, Event, EventHandler, Manager, State, Wry};
 use tokio::net::TcpStream;
 use tokio::task::block_in_place;
@@ -9,7 +9,7 @@ use tokio_tungstenite::{MaybeTlsStream, tungstenite::Result, WebSocketStream};
 use tokio_tungstenite::tungstenite::Message;
 use entity::chat_message_pack::Obj;
 use entity::{AckMessage, ChatMessagePack, GroupMessage, LoginMessage, MsgType, ProstMessage};
-use crate::{ConnectedEnum, system_tray_flicker, WsConnectFlag};
+use crate::{ConnectedEnum, SqliteRbatis, system_tray_flicker, WsConnectFlag};
 use crate::sqlite::sqlite::sqlite::get_token;
 use crate::sqlite::{ChatMessage, User};
 
@@ -42,11 +42,11 @@ Result<()> {
             let mut guard = state.connected.lock().await;
             match *guard {
                 ConnectedEnum::YES => {
-                    println!("WebSocket is connected");
+                    info!("WebSocket is connected");
                     return Ok(());
                 }
                 ConnectedEnum::NO => {
-                    println!("WebSocket正在连接...");
+                    info!("WebSocket正在连接...");
                     *guard = ConnectedEnum::YES;
                     ws
                 }
@@ -66,7 +66,7 @@ Result<()> {
         }
     };
 
-    println!("WebSocket connect success");
+    info!("WebSocket connect success");
 
     // 将websocket分割为 写 和 读，可以单独分割使用
     let (write, read) = ws_stream.split();
@@ -105,16 +105,16 @@ fn listen_ack_msg(handle_write: AppHandle<Wry>,
                   mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>) -> EventHandler {
     let handle = handle_write.clone();
     let event = handle_write.listen_global("ack_msg_send", move |event: Event| {
-        println!("GOT ACK MSG PAYLOAD ==> ");
+        info!("GOT ACK MSG PAYLOAD ==> ");
         let ack_msg_json = event.payload().unwrap();
-        println!("{}", ack_msg_json);
+        info!("{}", ack_msg_json);
         let mut msg: ChatMessage = serde_json::from_str(ack_msg_json).unwrap();
         if let None = msg.id {
-            println!("msg id is not exists");
+            info!("msg id is not exists");
             return;
         }
         if let None = msg.roomId {
-            println!("msg room_id is not exists");
+            info!("msg room_id is not exists");
             return;
         }
 
@@ -152,42 +152,41 @@ fn listen_group_msg(handle_write: AppHandle<Wry>,
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
     let handle = handle_write.clone();
     let event = handle_write.listen_global("group_msg_send", move |event: Event| {
-        println!("GOT GROUP MSG PAYLOAD ==> ");
+        info!("GOT GROUP MSG PAYLOAD ==> ");
         let chat_msg_json = event.payload().unwrap();
-        println!("{:?}", chat_msg_json);
-        if let Err(e) = serde_json::from_str::<ChatMessage>(chat_msg_json) {
-            println!("{}", e);
-            println!("无法反序列化消息对象 --> {}", chat_msg_json);
+        info!("{:?}", chat_msg_json);
+        if let Err(_) = serde_json::from_str::<ChatMessage>(chat_msg_json) {
+            error!("无法反序列化消息对象 --> {}", chat_msg_json);
             return;
         }
         let mut msg: ChatMessage = serde_json::from_str(chat_msg_json).unwrap();
-        println!("{:?}", msg);
+        info!("{:?}", msg);
         let mutex_write = mutex_write.clone();
         let handle = handle.clone();
         block_in_place(move || {
             let mutex_write = mutex_write.clone();
             tauri::async_runtime::block_on(async move {
                 let user_state: State<'_, User> = handle.try_state().unwrap();
-                println!("Send : {}", chat_msg_json);
-                println!("{:?}", *user_state);
+                info!("Send : {}", chat_msg_json);
+                info!("{:?}", *user_state);
 
                 let mut chat_message = entity::message::ChatMessage::new();
                 if let Some(id) = msg.id.take() {
                     chat_message.id = id;
                 } else {
-                    println!("消息id 不存在!");
+                    error!("消息id 不存在!");
                     return;
                 }
                 if let Some(content) = msg.content.take() {
                     chat_message.content = content;
                 } else {
-                    println!("消息content 不存在!");
+                    error!("消息content 不存在!");
                     return;
                 }
                 if let Some(room_id) = msg.roomId {
                     chat_message.chat_room_id = room_id;
                 } else {
-                    println!("消息room_id 不存在!");
+                    error!("消息room_id 不存在!");
                     return;
                 }
                 chat_message.sender_id = user_state.id.clone();
@@ -217,20 +216,20 @@ fn handle_ws_read(handle_read: AppHandle<Wry>,
             if let Ok(msg) = res_msg {
                 system_tray_flicker(&handle_read);
                 if msg.is_text() {
-                    println!("GOT  TEXT : {}", msg);
+                    info!("GOT  TEXT : {}", msg);
                     // handle_read.emit_all("msg_read", msg.into_text().unwrap()).expect("read msg failed");
                 } else if msg.is_binary() {
                     let data = msg.into_data();
                     let obj: ChatMessagePack = entity::ProstMessage::decode(&*data).unwrap();
-                    println!(">>>>>>>>>>>>>>>>>>>>>>>>>>>");
-                    println!("GOT  BINARY: {:?}", obj);
-                    println!(">>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                    info!(">>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                    info!("GOT  BINARY: {:?}", obj);
+                    info!(">>>>>>>>>>>>>>>>>>>>>>>>>>>");
                     // todo! 根据不同的消息类型返回不同的事件
                     let obj_data = obj.obj.unwrap();
                     match obj_data {
                         Obj::GroupMessage(msg) => {
                             let chat_msg = msg.chat_message.unwrap();
-                            println!("{:?}", chat_msg);
+                            info!("{:?}", chat_msg);
                             // let room_id = chat_msg.chat_room_id.clone();
                             handle_read.emit_all("msg_read", chat_msg).expect
                             ("read msg failed");
@@ -264,19 +263,19 @@ async fn send_ws_message(mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>,
                          handle: AppHandle<Wry>,
                          msg_type: MsgType,
                          obj: Obj) {
-    let rb_state: State<'_, RBatis> = handle.try_state().unwrap();
-    let token = get_token(&rb_state).await;
-    let pack = ChatMessagePack::new(token.as_str(), msg_type, Some(obj));
+    let rb_state: State<'_, SqliteRbatis> = handle.try_state().unwrap();
+    let rb_state = rb_state.db.lock().await;
+    let token = get_token(&*rb_state).await;
+    let pack = ChatMessagePack::new(token.as_str(), msg_type.clone(), Some(obj));
     let len = ProstMessage::encoded_len(&pack);
     let mut buf: Vec<u8> = vec![];
     buf.reserve(len);
     pack.encode(&mut buf).unwrap();
-    // println!("{:?}", buf);
     // 发送消息
     if let Ok(_) = mutex_write.lock().await.send(Message::binary(buf)).await {
-        println!("发送成功!");
+        info!("{:?} --> 发送成功!",msg_type);
     } else {
-        println!("发送失败!");
+        error!("{:?} --> 发送失败!",msg_type);
     }
 }
 

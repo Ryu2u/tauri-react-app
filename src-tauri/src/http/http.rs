@@ -1,10 +1,10 @@
 use std::env;
-use rbatis::RBatis;
+use log::{error, info};
 use reqwest::{Error, header, Response};
 use serde::de::DeserializeOwned;
 use serde::{Serialize};
 use tauri::{AppHandle, Manager, State, Wry};
-use crate::{back_to_login, WsConnectFlag};
+use crate::{back_to_login, SqliteRbatis, WsConnectFlag};
 use crate::sqlite::structs::{HttpError, HttpResult};
 use crate::sqlite::sqlite::sqlite::{delete_token, get_token};
 
@@ -13,10 +13,11 @@ const TOKEN_BEARER: &str = "Bearer ";
 
 
 /// Http Get 请求接口 返回json格式
-pub async fn http_get<T: DeserializeOwned>(path: String, state: State<'_, RBatis>,
+pub async fn http_get<T: DeserializeOwned>(path: String, state: State<'_, SqliteRbatis>,
                                            app_handle: AppHandle<Wry>)
                                            ->
                                            Result<HttpResult<T>, HttpError> {
+    let state = state.db.lock().await;
     let token = get_token(&*state).await;
 
     let client = reqwest::Client::new();
@@ -31,9 +32,9 @@ pub async fn http_get<T: DeserializeOwned>(path: String, state: State<'_, RBatis
 
 /// Http Post 请求接口 返回json格式
 pub async fn http_post<T: DeserializeOwned, E: Serialize + ?Sized>(path: String, state:
-State<'_,
-    RBatis>, json: &E, app_handle: AppHandle<Wry>) ->
+State<'_, SqliteRbatis>, json: &E, app_handle: AppHandle<Wry>) ->
                                                                    Result<HttpResult<T>, HttpError> {
+    let state = state.db.lock().await;
     let token = get_token(&*state).await;
     let client = reqwest::Client::new();
     let host = env::var("HTTP_URL").expect("env file don't exists HTTP_URL");
@@ -68,13 +69,13 @@ AppHandle<Wry>) -> Result<HttpResult<T>, HttpError> {
             let json = response.json::<HttpResult<T>>().await;
             match json {
                 Ok(data) => {
-                    println!("http code : {:?}", data.code);
+                    info!("http code : {:?}", data.code);
                     if data.code == 403 || data.code == 401 {
                         let flag_state: State<'_, WsConnectFlag> = app_handle.state();
                         let lock = flag_state.connected.lock().await;
                         if let None = app_handle.get_window("login") {
                             let app_clone = app_handle.clone();
-                            let state: State<'_, RBatis> = app_clone.try_state().unwrap();
+                            let state: State<'_, SqliteRbatis> = app_clone.try_state().unwrap();
                             delete_token(state).await;
                             back_to_login(app_clone);
                             let login_window = app_handle.get_window("login").unwrap();
@@ -88,7 +89,7 @@ AppHandle<Wry>) -> Result<HttpResult<T>, HttpError> {
                         }
                         match *lock {
                             _ => {
-                                println!("释放锁!");
+                                info!("释放锁!");
                             }
                         }
                         drop(lock);
@@ -96,13 +97,13 @@ AppHandle<Wry>) -> Result<HttpResult<T>, HttpError> {
                     Ok(data)
                 }
                 Err(e) => {
-                    println!("反序列化失败! -> {:?}", e);
+                    error!("反序列化失败! -> {:?}", e);
                     Err(HttpError::CustomError("Error".to_string()))
                 }
             }
         }
         Err(_e) => {
-            println!("读取响应失败!");
+            error!("读取响应失败!");
             Err(HttpError::CustomError("http error".to_string()))
         }
     }

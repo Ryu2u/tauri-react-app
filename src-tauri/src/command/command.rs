@@ -1,4 +1,5 @@
 pub mod command {
+    use log::info;
     use tauri::{Manager, State, Window, Wry};
     use tauri::{AppHandle};
     use window_shadows::set_shadow;
@@ -29,7 +30,7 @@ pub mod command {
         }
         match *lock {
             _ => {
-                println!("释放创建main窗口锁!");
+                info!("释放创建main窗口锁!");
             }
         }
         drop(lock);
@@ -75,11 +76,11 @@ pub mod command {
 
     /// 创建main 窗口
     fn get_main_window(app_handle: &AppHandle<Wry>) -> Window<Wry> {
-        println!("正在创建main窗口!!!!!!!!!!!!!!!!!");
+        info!("正在创建main窗口!!!!!!!!!!!!!!!!!");
         if let Some(main_window) = app_handle.get_window("main") {
             main_window
         } else {
-            println!("创建main窗口!!!!!!!!!!!!!!!!!");
+            info!("创建main窗口!!!!!!!!!!!!!!!!!");
             let main_window = tauri::WindowBuilder::new(app_handle,
                                                         "main",
                                                         tauri::WindowUrl::App("/admin".into()),
@@ -90,7 +91,7 @@ pub mod command {
                 .decorations(false)
                 .title("Home").build().expect("can not create window main");
             let _ = set_shadow(&main_window, true);
-            println!("main window created");
+            info!("main window created");
             main_window
         }
     }

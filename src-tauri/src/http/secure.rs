@@ -1,7 +1,7 @@
 use base64::Engine;
 use std::fs::File;
+use log::info;
 use std::io::Read;
-use rsa::pkcs8::der::Encode;
 
 /// 获取公钥
 pub fn get_public_key() -> String {
@@ -14,9 +14,7 @@ pub fn get_public_key() -> String {
     file.read_to_string(&mut public_key).expect("can't read file");
     let local_public_key = RsaPublicKey::from_public_key_pem(&public_key).unwrap();
     let doc = local_public_key.to_public_key_der().unwrap();
-
     let base64_encode = general_purpose::STANDARD_NO_PAD.encode(doc.to_vec());
-
     base64_encode
 }
 
@@ -38,7 +36,7 @@ CE0ILa/ZabzIHgcBPdouzuj/whV/WhKx0y5uACsaEg+Khr8rmBbh5EGyw4EUWnA1
     let encode_str = server_public_key.encrypt(&mut rng, Pkcs1v15Encrypt, raw_str)
         .unwrap();
     let base64_encode = general_purpose::STANDARD_NO_PAD.encode(&encode_str[..]);
-    println!("{}", base64_encode);
+    info!("{}", base64_encode);
     base64_encode
 }
 
@@ -59,7 +57,7 @@ pub fn decode_msg(msg: &str) -> String {
 
     let decode_str = private_key.decrypt(Pkcs1v15Encrypt, &vec).unwrap();
     let res = String::from_utf8(decode_str);
-    println!("{:?}", res);
+    info!("{:?}", res);
     match res {
         Ok(str) => {
             str
@@ -97,10 +95,10 @@ mod test {
         /// 将生成的秘钥写入指定的文件
         // private_key.write_pkcs8_pem_file(Path::new("C:/Users/Administrator/Desktop/private_key.txt"), LineEnding::CRLF).unwrap();
 
-        println!("result1 : {:?}", result);
-        println!("result2 : {:?}", res2.as_str());
-        println!("private key : {:?}", private_key);
-        println!("public key : {:?}", public_key);
+        info!("result1 : {:?}", result);
+        info!("result2 : {:?}", res2.as_str());
+        info!("private key : {:?}", private_key);
+        info!("public key : {:?}", public_key);
 
         let raw_str = b"admin";
 
@@ -108,24 +106,24 @@ mod test {
 
         let base64_encode = general_purpose::STANDARD.encode(encode_str.clone());
 
-        println!("{:?}", base64_encode);
+        info!("{:?}", base64_encode);
 
         let decode_str = private_key.decrypt(Pkcs1v15Encrypt, &encode_str).unwrap();
 
 
-        println!("{:?}", &decode_str[..]);
-        println!("{:?}", &raw_str[..]);
+        info!("{:?}", &decode_str[..]);
+        info!("{:?}", &raw_str[..]);
 
         let str = String::from_utf8(decode_str.clone());
 
-        println!("{:?}", str);
+        info!("{:?}", str);
 
         let vec = general_purpose::STANDARD.decode(base64_encode).unwrap();
         assert_eq!(vec, encode_str);
 
         let decode_str = private_key.decrypt(Pkcs1v15Encrypt, &vec).unwrap();
         let str = String::from_utf8(decode_str.clone());
-        println!("{:?}", str);
+        info!("{:?}", str);
     }
 
     #[test]
@@ -148,7 +146,7 @@ mod test {
         let raw_str = b"admin";
         let encode_str = local_public_key.encrypt(&mut rng, Pkcs1v15Encrypt, raw_str).unwrap();
         let base64_encode = general_purpose::STANDARD.encode(encode_str);
-        println!("{:?}", base64_encode);
+        info!("{:?}", base64_encode);
         let decode_str = decode_msg(&base64_encode);
         assert_eq!(raw_string, decode_str);
     }

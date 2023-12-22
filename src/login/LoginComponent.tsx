@@ -4,16 +4,21 @@ import {Avatar, Button, message, Checkbox, Form, Input, FormInstance} from "antd
 import {appWindow} from "@tauri-apps/api/window";
 import {invoke} from "@tauri-apps/api";
 import {R} from "../entity/Entity";
-import {useEffect, useRef} from "react";
-import {USER_KEY} from "../common/constant";
+import {useEffect, useRef, useState} from "react";
+import {USER_AVATAR_PATH, USER_KEY} from "../common/constant";
 
 export function LoginComponent() {
 
     const [messageApi, contextHolder] = message.useMessage();
     const formRef = useRef<FormInstance>(null);
+    const [avatar, setAvatar] = useState('');
 
     useEffect(() => {
         let userKey = localStorage.getItem(USER_KEY);
+        let user_avatar = localStorage.getItem(USER_AVATAR_PATH);
+        if (user_avatar) {
+            setAvatar(user_avatar);
+        }
         if (userKey) {
             let key = parseInt(userKey);
             invoke('check_login', {
@@ -107,8 +112,7 @@ export function LoginComponent() {
             </div>
             <div className={"login-div"}>
                 <div data-tauri-drag-region className={"avatar-div"}>
-                    <Avatar className={"user-avatar"} size={70} src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}/>
-
+                    <Avatar className={"user-avatar"} size={70} src={avatar}/>
                 </div>
                 <div className={"input-div"}>
                     <Form

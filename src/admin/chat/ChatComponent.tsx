@@ -8,6 +8,7 @@ import {Outlet, useNavigate} from "react-router";
 import {invoke} from "@tauri-apps/api";
 import {ChatMessage, ChatRoom, ProtoAckMessage, ProtoChatMessage, R} from "../../entity/Entity.ts";
 import {Resizable} from "re-resizable";
+import {USER_AVATAR_PATH} from "../../common/constant";
 
 export function ChatComponent() {
 
@@ -16,9 +17,14 @@ export function ChatComponent() {
     const chatRoomListRef = useRef<ChatRoom[]>([]);
     const [roomList, setRoomList] = useState<ChatRoom[]>([]);
     const [currentRoomId, setCurrentRoomId] = useState(-1);
+    const [avatar, setAvatar] = useState('');
 
     useEffect(() => {
         console.log("chatComponent : " + window.location.toString());
+        let user_avatar = localStorage.getItem(USER_AVATAR_PATH);
+        if (user_avatar) {
+            setAvatar(user_avatar);
+        }
 
         const url: string = window.location.toString();
         if (url.includes("/chat/room/")) {
@@ -105,7 +111,7 @@ export function ChatComponent() {
                     <ul>
                         <li>
                             <Avatar size={40}
-                                    src={"https://ryu2u-1305537946.cos.ap-nanjing.myqcloud.com/pictures%2FQQ%E5%9B%BE%E7%89%8720231118112223.jpg"}
+                                    src={avatar}
                             />
                         </li>
                     </ul>

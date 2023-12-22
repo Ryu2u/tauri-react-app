@@ -8,7 +8,7 @@ import {emit, listen} from "@tauri-apps/api/event";
 import {useAsyncError, useParams} from "react-router";
 import {ChatMessage, ChatRoom, ProtoAckMessage, ProtoChatMessage, ProtoResponseMessage, R, User} from "../../entity/Entity.ts";
 import {invoke} from "@tauri-apps/api";
-import {USER_KEY, uuid} from "../../common/constant";
+import {USER_AVATAR_PATH, USER_KEY, uuid} from "../../common/constant";
 import {Loading3QuartersOutlined} from "@ant-design/icons";
 import Vditor from "vditor";
 
@@ -185,13 +185,14 @@ export function RoomComponent() {
         html = html.substring(0, html.lastIndexOf("\n"));
         console.log("sen_msg -->");
         console.log(html);
-        let user: User = JSON.parse(localStorage.getItem("user_info"));
+        let user_id = parseInt(localStorage.getItem(USER_KEY));
+        let user_avatar = localStorage.getItem(USER_AVATAR_PATH);
         let msg: ChatMessage = new ChatMessage();
         msg.id = uuid();
         msg.roomId = room.id;
         msg.content = html;
-        msg.senderId = user.id;
-        msg.senderAvatar = user.avatarPath;
+        msg.senderId = user_id;
+        msg.senderAvatar = user_avatar;
         emit('group_msg_send', msg).then(v => {
             vditor!.setValue("");
             msg.isSend = false;

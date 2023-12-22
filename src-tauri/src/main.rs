@@ -15,7 +15,7 @@ use window_shadows::set_shadow;
 use std::env;
 use std::sync::{Arc};
 use dotenv::dotenv;
-use rbatis::RBatis;
+use log::{info, LevelFilter,error};
 
 mod command;
 mod ws;
@@ -24,10 +24,12 @@ mod sqlite;
 
 use ws::connect_websocket;
 use command::{greet, route_to_admin, back_to_login};
-use http::{login, get_user_info, get_chat_room_list, get_room_info, check_login, room_msg_list, get_sys_time};
+use http::{login, get_user_info, get_chat_room_list, get_room_info, check_login, room_msg_list,
+           get_sys_time,logout};
 
 
 use crate::sqlite::sqlite::sqlite::delete_token_if_not_remember;
+use crate::sqlite::SqliteRbatis;
 
 
 pub enum ConnectedEnum {
@@ -48,14 +50,20 @@ pub struct WsConnectFlag {
 async fn main() {
     // 加载配置文件
     dotenv().ok();
+    // 启用日志
+    fast_log::init(fast_log::Config::new()
+        .console()
+        .level(LevelFilter::Info)
+    ).expect ("rbatis  init fail");
+
+    // 设置tauri 运行时
+    tauri::async_runtime::set(tokio::runtime::Handle::current());
+
     // 创建系统托盘
     let tray = create_system_tray();
     // 创建系统菜单
     let menu = create_system_menu();
-    // 启用日志
-    // fast_log::init(fast_log::Config::new().console()).expect("rbatis init fail");
-    // 设置tauri 运行时
-    tauri::async_runtime::set(tokio::runtime::Handle::current());
+
     // 配置Tauri
     tauri::Builder::default()
         .setup(|app| {
@@ -77,6 +85,7 @@ async fn main() {
       back_to_login,
       connect_websocket,
             login,
+            logout,
             get_user_info,
             get_chat_room_list,
             get_room_info,
@@ -106,7 +115,7 @@ fn menu_event_handle(event: WindowMenuEvent<Wry>) {
         "open" => {
             //获取本地文件路径
             tauri::api::dialog::FileDialogBuilder::new().pick_file(|file_path| {
-                println!("file path: {:?}", file_path);
+                info!("file path: {:?}", file_path);
             });
         }
         "add" => {
@@ -172,7 +181,7 @@ fn tray_menu_handle(app_handle: &AppHandle<Wry>, event: SystemTrayEvent) {
         SystemTrayEvent::MenuItemClick { id, .. } => {
             match id.as_str() {
                 "hide" => {
-                    println!("hide clicked");
+                    info!("hide clicked");
                     let windows = app_handle.windows();
                     for key in windows.keys() {
                         let window_opt = windows.get(key);
@@ -184,7 +193,7 @@ fn tray_menu_handle(app_handle: &AppHandle<Wry>, event: SystemTrayEvent) {
                     }
                 }
                 "quit" => {
-                    println!("quit clicked");
+                    info!("quit clicked");
                     let windows = app_handle.windows();
                     for key in windows.keys() {
                         let handle = app_handle.clone();
@@ -195,11 +204,12 @@ fn tray_menu_handle(app_handle: &AppHandle<Wry>, event: SystemTrayEvent) {
                                 if answer {
                                     tauri::async_runtime::block_on(async
                                         move {
-                                        let option_state: Option<State<'_, RBatis>> = handle.try_state();
+                                        let option_state: Option<State<'_, SqliteRbatis>> = handle
+                                            .try_state();
                                         if let Some(sql_state) = option_state {
                                             delete_token_if_not_remember(sql_state).await
                                         } else {
-                                            println!("无法获取rbatis");
+                                            error!("无法获取rbatis");
                                         }
                                         std::process::exit(0);
                                     });
@@ -227,13 +237,13 @@ fn tray_menu_handle(app_handle: &AppHandle<Wry>, event: SystemTrayEvent) {
                 }
             }
 
-            println!("left click menu");
+            info!("left click menu");
         }
         SystemTrayEvent::RightClick { .. } => {
-            println!("right click menu");
+            info!("right click menu");
         }
         SystemTrayEvent::DoubleClick { .. } => {
-            println!("double click menu");
+            info!("double click menu");
         }
         _ => {}
     }
