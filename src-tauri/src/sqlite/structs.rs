@@ -1,9 +1,9 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::sync::Arc;
-use log::{error};
+use log::error;
 use rbatis::{crud, RBatis};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
 
 /// 自定义Http异常
 #[derive(Debug)]
@@ -31,13 +31,12 @@ impl Display for HttpError {
 // we must manually implement serde::Serialize
 impl serde::Serialize for HttpError {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::ser::Serializer,
+    where
+        S: serde::ser::Serializer,
     {
         serializer.serialize_str("custom error")
     }
 }
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HttpResult<T> {
@@ -64,7 +63,7 @@ pub struct AuthHeader {
     pub refresh_token: String,
     pub remember_me: i32,
 }
-crud!(AuthHeader{});
+crud!(AuthHeader {});
 impl_select!(AuthHeader{get_token() => "`limit 1`"});
 impl_delete!(AuthHeader{delete_token() => "`where 1=1`"});
 
@@ -89,10 +88,8 @@ pub struct User {
     createdBy: i32,
     createdTime: i64,
 }
-crud!(User{},"tb_user");
+crud!(User {}, "tb_user");
 impl_select!(User{select_by_id(id:i32) => "`where id = #{id}`"},"tb_user");
-
-
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[allow(non_snake_case)]
@@ -106,8 +103,7 @@ pub struct ChatRoom {
     unreadCount: i32,
     latestMsg: String,
 }
-crud!(ChatRoom{},"tb_chat_room");
-
+crud!(ChatRoom {}, "tb_chat_room");
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[allow(non_snake_case)]

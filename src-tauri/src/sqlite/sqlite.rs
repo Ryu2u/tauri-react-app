@@ -1,8 +1,8 @@
 pub mod sqlite {
-    use rbatis::RBatis;
-    use tauri::State;
     use crate::sqlite::{AuthHeader, SqliteRbatis};
     use log::{error, info};
+    use rbatis::RBatis;
+    use tauri::State;
 
     pub async fn get_token(rb: &RBatis) -> String {
         let res = AuthHeader::get_token(rb).await;
@@ -40,14 +40,14 @@ pub mod sqlite {
         }
     }
 
-
     #[cfg(test)]
     mod test {
-        use std::env;
+        use crate::sqlite::{AuthHeader, User};
         use dotenv::dotenv;
+        use log::info;
         use rbatis::RBatis;
         use rbdc_sqlite::SqliteDriver;
-        use crate::sqlite::{AuthHeader, User};
+        use std::env;
 
         #[tokio::test]
         async fn test_rbatis() {

@@ -1,9 +1,9 @@
 pub mod command {
-    use log::info;
-    use tauri::{Manager, State, Window, Wry};
-    use tauri::{AppHandle};
-    use window_shadows::set_shadow;
     use crate::WsConnectFlag;
+    use log::info;
+    use tauri::AppHandle;
+    use tauri::{Manager, State, Window, Wry};
+    use window_shadows::set_shadow;
 
     #[tauri::command]
     pub fn greet(name: &str) -> String {
@@ -13,7 +13,7 @@ pub mod command {
     /// 登录完成操作，跳转到主页面
     #[tauri::command]
     pub async fn route_to_admin(app_handle: AppHandle<Wry>) {
-        let lock_state:State<'_,WsConnectFlag> = app_handle.state();
+        let lock_state: State<'_, WsConnectFlag> = app_handle.state();
         let lock = lock_state.connected.lock().await;
         if let Some(window) = app_handle.get_window("main") {
             if !window.is_visible().unwrap() {
@@ -52,18 +52,18 @@ pub mod command {
         }
     }
 
-
     /// 创建login 窗口
     fn get_login_window(app_handle: &AppHandle<Wry>) -> Window<Wry> {
         if let Some(main_window) = app_handle.get_window("login") {
             main_window
         } else {
-            let mut builder = tauri::WindowBuilder::new(app_handle,
-                                                        "login",
-                                                        tauri::WindowUrl::App("/login".into()),
+            let mut builder = tauri::WindowBuilder::new(
+                app_handle,
+                "login",
+                tauri::WindowUrl::App("/login".into()),
             );
-            builder = builder.
-                inner_size(430f64, 330f64)
+            builder = builder
+                .inner_size(430f64, 330f64)
                 .center()
                 .resizable(false)
                 .decorations(false)
@@ -81,19 +81,22 @@ pub mod command {
             main_window
         } else {
             info!("创建main窗口!!!!!!!!!!!!!!!!!");
-            let main_window = tauri::WindowBuilder::new(app_handle,
-                                                        "main",
-                                                        tauri::WindowUrl::App("/admin".into()),
-            ).inner_size(900f64, 700f64)
-                .min_inner_size(700f64, 500f64)
-                .center()
-                .resizable(true)
-                .decorations(false)
-                .title("Home").build().expect("can not create window main");
+            let main_window = tauri::WindowBuilder::new(
+                app_handle,
+                "main",
+                tauri::WindowUrl::App("/admin".into()),
+            )
+            .inner_size(900f64, 700f64)
+            .min_inner_size(700f64, 500f64)
+            .center()
+            .resizable(true)
+            .decorations(false)
+            .title("Home")
+            .build()
+            .expect("can not create window main");
             let _ = set_shadow(&main_window, true);
             info!("main window created");
             main_window
         }
     }
 }
-

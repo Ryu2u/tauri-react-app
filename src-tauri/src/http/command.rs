@@ -1,23 +1,25 @@
+use crate::command::route_to_admin;
+use crate::http::secure::{decode_msg, encode_msg, get_public_key};
+use crate::http::{http_get, http_post, http_post_no_auth};
+use crate::sqlite::sqlite::sqlite::{delete_token, get_token};
+use crate::sqlite::{AuthHeader, ChatMessage, ChatRoom, HttpError, HttpResult, User};
+use crate::{back_to_login, SqliteRbatis};
+use log::{error, info, warn};
+use rbatis::RBatis;
+use rbdc_sqlite::SqliteDriver;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::sync::{Arc};
-use log::{error, info, warn};
-use rbatis::RBatis;
-use rbdc_sqlite::{SqliteDriver};
+use std::sync::Arc;
 use tauri::{AppHandle, Manager, State, Wry};
-use crate::{back_to_login, SqliteRbatis};
-use crate::command::route_to_admin;
-use crate::sqlite::{AuthHeader, ChatMessage, ChatRoom, HttpError, HttpResult, User};
-use crate::sqlite::sqlite::sqlite::{delete_token, get_token};
-use crate::http::secure::{decode_msg, get_public_key, encode_msg};
-use crate::http::{http_get, http_post_no_auth, http_post};
-
 
 #[tauri::command]
-pub async fn get_room_info(room_id: String, state: State<'_, SqliteRbatis>, app_handle:
-AppHandle<Wry>) -> Result<HttpResult<ChatRoom>, HttpError> {
+pub async fn get_room_info(
+    room_id: String,
+    state: State<'_, SqliteRbatis>,
+    app_handle: AppHandle<Wry>,
+) -> Result<HttpResult<ChatRoom>, HttpError> {
     match http_get::<ChatRoom>(format!("/chat-room/{}", room_id), state, app_handle).await {
         Ok(res) => {
             info!("{:?}", res);
@@ -30,10 +32,8 @@ AppHandle<Wry>) -> Result<HttpResult<ChatRoom>, HttpError> {
     }
 }
 
-
 #[tauri::command]
-pub async fn check_login(user_id: i32, app_handle: AppHandle<Wry>) -> Result<(),
-    HttpError> {
+pub async fn check_login(user_id: i32, app_handle: AppHandle<Wry>) -> Result<(), HttpError> {
     info!("正在检查是否直接登录, user_id -> {} ...", user_id);
     let mut sqlite_url = env::var("SQLITE_URL").unwrap();
     sqlite_url = format!("{}{}.db", sqlite_url, user_id);
@@ -48,7 +48,7 @@ pub async fn check_login(user_id: i32, app_handle: AppHandle<Wry>) -> Result<(),
     let token = get_token(&rb_copy).await;
     if token != "" {
         let sqlite_rbatis = SqliteRbatis {
-            db: Arc::new(tokio::sync::Mutex::new(rb.clone()))
+            db: Arc::new(tokio::sync::Mutex::new(rb.clone())),
         };
         let set_success = app_handle.manage(sqlite_rbatis);
         if !set_success {
@@ -69,12 +69,13 @@ pub async fn check_login(user_id: i32, app_handle: AppHandle<Wry>) -> Result<(),
     Ok(())
 }
 
-
 #[tauri::command]
-pub async fn room_msg_list(room_id: String, send_time: String,
-                           state: State<'_, SqliteRbatis>,
-                           app_handle: AppHandle<Wry>) -> Result<HttpResult<Vec<ChatMessage>>,
-    HttpError> {
+pub async fn room_msg_list(
+    room_id: String,
+    send_time: String,
+    state: State<'_, SqliteRbatis>,
+    app_handle: AppHandle<Wry>,
+) -> Result<HttpResult<Vec<ChatMessage>>, HttpError> {
     let mut map: HashMap<String, String> = HashMap::new();
     map.insert("roomId".to_string(), room_id.to_string());
     map.insert("sendTime".to_string(), send_time.to_string());
@@ -91,10 +92,11 @@ pub async fn room_msg_list(room_id: String, send_time: String,
     }
 }
 
-
 #[tauri::command]
-pub async fn get_chat_room_list(state: State<'_, SqliteRbatis>, app_handle: AppHandle<Wry>) ->
-Result<HttpResult<Vec<ChatRoom>>, HttpError> {
+pub async fn get_chat_room_list(
+    state: State<'_, SqliteRbatis>,
+    app_handle: AppHandle<Wry>,
+) -> Result<HttpResult<Vec<ChatRoom>>, HttpError> {
     match http_get::<Vec<ChatRoom>>("/chat-room/all".to_string(), state, app_handle).await {
         Ok(res) => {
             info!("{:?}", res);
@@ -107,11 +109,14 @@ Result<HttpResult<Vec<ChatRoom>>, HttpError> {
     }
 }
 
-
 /// 登录接口
 #[tauri::command]
-pub async fn login(username: &str, password: &str, remember_me: bool, app_handle: AppHandle<Wry>) ->
-Result<HttpResult<String>, HttpError> {
+pub async fn login(
+    username: &str,
+    password: &str,
+    remember_me: bool,
+    app_handle: AppHandle<Wry>,
+) -> Result<HttpResult<String>, HttpError> {
     let username = username.as_bytes();
     let password = password.as_bytes();
 
@@ -127,8 +132,12 @@ Result<HttpResult<String>, HttpError> {
     map.insert("rememberMe", remember_me.to_string());
     map.insert("publicKey", public_key);
 
-    let res = http_post_no_auth::<AuthHeader, HashMap<&str, String>>("/login".to_string(),
-                                                                     &map, app_handle.clone()).await;
+    let res = http_post_no_auth::<AuthHeader, HashMap<&str, String>>(
+        "/login".to_string(),
+        &map,
+        app_handle.clone(),
+    )
+    .await;
     match res {
         Ok(result) => {
             let auth = result.data.clone();
@@ -156,12 +165,14 @@ Result<HttpResult<String>, HttpError> {
                     let mut sql_file = File::open("main.sql").unwrap();
                     let mut sql = String::new();
                     sql_file.read_to_string(&mut sql).expect("read sql failed");
-                    rb.exec(sql.as_str(), vec![]).await.expect("exec sql failed");
+                    rb.exec(sql.as_str(), vec![])
+                        .await
+                        .expect("exec sql failed");
                 }
                 let insert_data = AuthHeader::insert(&rb, &table).await;
                 info!("insert_data : {:?}", insert_data);
                 let sqlite_rbatis = SqliteRbatis {
-                    db: Arc::new(tokio::sync::Mutex::new(rb.clone()))
+                    db: Arc::new(tokio::sync::Mutex::new(rb.clone())),
                 };
                 let set_success = app_handle.manage(sqlite_rbatis);
                 if !set_success {
@@ -202,11 +213,12 @@ Result<HttpResult<String>, HttpError> {
     }
 }
 
-
 /// 用户当前登录用户具体信息
 #[tauri::command]
-pub async fn get_user_info(state: State<'_, SqliteRbatis>, app_handle: AppHandle<Wry>) ->
-Result<HttpResult<User>, HttpError> {
+pub async fn get_user_info(
+    state: State<'_, SqliteRbatis>,
+    app_handle: AppHandle<Wry>,
+) -> Result<HttpResult<User>, HttpError> {
     match http_get::<User>("/user/info".to_string(), state, app_handle.clone()).await {
         Ok(res) => {
             info!("{:?}", res);
@@ -222,8 +234,10 @@ Result<HttpResult<User>, HttpError> {
 }
 
 #[tauri::command]
-pub async fn get_sys_time(state: State<'_, SqliteRbatis>, app_handle: AppHandle<Wry>) ->
-Result<HttpResult<i64>, HttpError> {
+pub async fn get_sys_time(
+    state: State<'_, SqliteRbatis>,
+    app_handle: AppHandle<Wry>,
+) -> Result<HttpResult<i64>, HttpError> {
     match http_get::<i64>("/chat-message/time".to_string(), state, app_handle.clone()).await {
         Ok(res) => {
             info!("{:?}", res);
@@ -237,8 +251,10 @@ Result<HttpResult<i64>, HttpError> {
 }
 
 #[tauri::command]
-pub async fn logout(app_handle: AppHandle<Wry>, sql_state: State<'_, SqliteRbatis>) -> Result<HttpResult<()>,
-    HttpError> {
+pub async fn logout(
+    app_handle: AppHandle<Wry>,
+    sql_state: State<'_, SqliteRbatis>,
+) -> Result<HttpResult<()>, HttpError> {
     delete_token(sql_state).await;
     back_to_login(app_handle);
     Ok(HttpResult::new(200, "", ()))

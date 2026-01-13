@@ -1,35 +1,38 @@
-use std::sync::{Arc };
-use futures_util::SinkExt;
+use crate::sqlite::sqlite::sqlite::get_token;
+use crate::sqlite::{ChatMessage, User};
+use crate::{system_tray_flicker, ConnectedEnum, SqliteRbatis, WsConnectFlag};
+use entity::chat_message_pack::Obj;
+use entity::{AckMessage, ChatMessagePack, GroupMessage, LoginMessage, MsgType, ProstMessage};
 use futures_util::stream::{SplitSink, SplitStream};
+use futures_util::SinkExt;
 use log::{error, info};
+use std::sync::Arc;
 use tauri::{AppHandle, Event, EventHandler, Manager, State, Wry};
 use tokio::net::TcpStream;
 use tokio::task::block_in_place;
-use tokio_tungstenite::{MaybeTlsStream, tungstenite::Result, WebSocketStream};
 use tokio_tungstenite::tungstenite::Message;
-use entity::chat_message_pack::Obj;
-use entity::{AckMessage, ChatMessagePack, GroupMessage, LoginMessage, MsgType, ProstMessage};
-use crate::{ConnectedEnum, SqliteRbatis, system_tray_flicker, WsConnectFlag};
-use crate::sqlite::sqlite::sqlite::get_token;
-use crate::sqlite::{ChatMessage, User};
+use tokio_tungstenite::{tungstenite::Result, MaybeTlsStream, WebSocketStream};
 
 /// WebSocket连接
 #[tauri::command]
-pub async fn connect_websocket(app_handle: AppHandle<Wry>, state: State<'_, WsConnectFlag>)
-                               -> tauri::Result<()> {
+pub async fn connect_websocket(
+    app_handle: AppHandle<Wry>,
+    state: State<'_, WsConnectFlag>,
+) -> tauri::Result<()> {
     connect_ws_async(&app_handle, state).await.unwrap();
     Ok(())
 }
 
-
 /// 连接websocket 主要函数
-async fn connect_ws_async(app_handle: &AppHandle<Wry>, state: State<'_, WsConnectFlag>) ->
-Result<()> {
-    use url::Url;
-    use futures_util::{StreamExt};
-    use tokio_tungstenite::{connect_async};
-    use tokio::sync::Mutex;
+async fn connect_ws_async(
+    app_handle: &AppHandle<Wry>,
+    state: State<'_, WsConnectFlag>,
+) -> Result<()> {
+    use futures_util::StreamExt;
     use std::env;
+    use tokio::sync::Mutex;
+    use tokio_tungstenite::connect_async;
+    use url::Url;
 
     let ws_url = env::var("WS_URL").expect("can not find .env -> WS_URL");
     let url = Url::parse(&ws_url).expect("bad url!");
@@ -56,10 +59,14 @@ Result<()> {
             let windows = app_handle.windows();
             for key in windows.keys() {
                 if let Some(window) = windows.get(key) {
-                    tauri::api::dialog::confirm(Some(&window), "Error", "无法连接Websocket服务器!", move
-                        |_answer| {
-                        panic!("can't connect websocket server!");
-                    });
+                    tauri::api::dialog::confirm(
+                        Some(&window),
+                        "Error",
+                        "无法连接Websocket服务器!",
+                        move |_answer| {
+                            panic!("can't connect websocket server!");
+                        },
+                    );
                 }
             }
             panic!("can't connect websocket server!");
@@ -86,14 +93,25 @@ Result<()> {
     let login_write = mutex_write.clone();
     block_in_place(move || {
         tauri::async_runtime::block_on(async move {
-            send_ws_message(login_write, app_handle.clone(), MsgType::LoginMessageType, obj).await;
+            send_ws_message(
+                login_write,
+                app_handle.clone(),
+                MsgType::LoginMessageType,
+                obj,
+            )
+            .await;
         });
     });
 
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
     let event = listen_group_msg(app_handle.clone(), mutex_write.clone());
     let ack_event = listen_ack_msg(app_handle.clone(), mutex_write.clone());
-    handle_ws_read(app_handle.clone(), mutex_read, state, vec![event, ack_event]);
+    handle_ws_read(
+        app_handle.clone(),
+        mutex_read,
+        state,
+        vec![event, ack_event],
+    );
 
     Ok(())
 }
@@ -101,8 +119,10 @@ Result<()> {
 type WebSocketWriter = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>;
 type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
-fn listen_ack_msg(handle_write: AppHandle<Wry>,
-                  mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>) -> EventHandler {
+fn listen_ack_msg(
+    handle_write: AppHandle<Wry>,
+    mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>,
+) -> EventHandler {
     let handle = handle_write.clone();
     let event = handle_write.listen_global("ack_msg_send", move |event: Event| {
         info!("GOT ACK MSG PAYLOAD ==> ");
@@ -146,9 +166,10 @@ fn listen_ack_msg(handle_write: AppHandle<Wry>,
     event
 }
 
-
-fn listen_group_msg(handle_write: AppHandle<Wry>,
-                    mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>) -> EventHandler {
+fn listen_group_msg(
+    handle_write: AppHandle<Wry>,
+    mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>,
+) -> EventHandler {
     // 注册监听前端的消息发送事件，当前端触发事件时调用websocket写，发送消息至服务器
     let handle = handle_write.clone();
     let event = handle_write.listen_global("group_msg_send", move |event: Event| {
@@ -203,11 +224,13 @@ fn listen_group_msg(handle_write: AppHandle<Wry>,
 }
 
 /// 处理WebSocket 读事件
-fn handle_ws_read(handle_read: AppHandle<Wry>,
-                  mutex_read: tokio::sync::Mutex<WebSocketReader>,
-                  state: State<'_, WsConnectFlag>,
-                  event_vec: Vec<EventHandler>) {
-    use futures_util::{StreamExt};
+fn handle_ws_read(
+    handle_read: AppHandle<Wry>,
+    mutex_read: tokio::sync::Mutex<WebSocketReader>,
+    state: State<'_, WsConnectFlag>,
+    event_vec: Vec<EventHandler>,
+) {
+    use futures_util::StreamExt;
     let guard = state.connected.clone();
     // 异步任务，循环读
     tokio::spawn(async move {
@@ -231,14 +254,19 @@ fn handle_ws_read(handle_read: AppHandle<Wry>,
                             let chat_msg = msg.chat_message.unwrap();
                             info!("{:?}", chat_msg);
                             // let room_id = chat_msg.chat_room_id.clone();
-                            handle_read.emit_all("msg_read", chat_msg).expect
-                            ("read msg failed");
+                            handle_read
+                                .emit_all("msg_read", chat_msg)
+                                .expect("read msg failed");
                         }
                         Obj::ResponseMessage(resp) => {
-                            handle_read.emit_all("msg_response", resp).expect("can't emit msg_response");
+                            handle_read
+                                .emit_all("msg_response", resp)
+                                .expect("can't emit msg_response");
                         }
                         Obj::AckMessage(ack) => {
-                            handle_read.emit_all("msg_ack", ack).expect("can't emit msg_ack");
+                            handle_read
+                                .emit_all("msg_ack", ack)
+                                .expect("can't emit msg_ack");
                         }
                         _ => {}
                     }
@@ -258,11 +286,12 @@ fn handle_ws_read(handle_read: AppHandle<Wry>,
     });
 }
 
-
-async fn send_ws_message(mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>,
-                         handle: AppHandle<Wry>,
-                         msg_type: MsgType,
-                         obj: Obj) {
+async fn send_ws_message(
+    mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>,
+    handle: AppHandle<Wry>,
+    msg_type: MsgType,
+    obj: Obj,
+) {
     let rb_state: State<'_, SqliteRbatis> = handle.try_state().unwrap();
     let rb_state = rb_state.db.lock().await;
     let token = get_token(&*rb_state).await;
@@ -273,10 +302,8 @@ async fn send_ws_message(mutex_write: Arc<tokio::sync::Mutex<WebSocketWriter>>,
     pack.encode(&mut buf).unwrap();
     // 发送消息
     if let Ok(_) = mutex_write.lock().await.send(Message::binary(buf)).await {
-        info!("{:?} --> 发送成功!",msg_type);
+        info!("{:?} --> 发送成功!", msg_type);
     } else {
-        error!("{:?} --> 发送失败!",msg_type);
+        error!("{:?} --> 发送失败!", msg_type);
     }
 }
-
-

@@ -9,28 +9,31 @@ use std::path::PathBuf;
 use std::thread;
 use std::thread::{sleep, spawn};
 use std::time::Duration;
-use tauri::{AppHandle, Menu, CustomMenuItem, GlobalWindowEvent, Icon, Manager, SystemTray, Submenu, SystemTrayEvent, SystemTrayMenu, WindowEvent, WindowMenuEvent, Wry, State};
+use tauri::{
+    AppHandle, CustomMenuItem, GlobalWindowEvent, Icon, Manager, Menu, State, Submenu, SystemTray,
+    SystemTrayEvent, SystemTrayMenu, WindowEvent, WindowMenuEvent, Wry,
+};
 use window_shadows::set_shadow;
 
-use std::env;
-use std::sync::{Arc};
 use dotenv::dotenv;
-use log::{info, LevelFilter,error};
+use log::{error, info, LevelFilter};
+use std::env;
+use std::sync::Arc;
 
 mod command;
-mod ws;
 mod http;
 mod sqlite;
+mod ws;
 
+use command::{back_to_login, greet, route_to_admin};
+use http::{
+    check_login, get_chat_room_list, get_room_info, get_sys_time, get_user_info, login, logout,
+    room_msg_list,
+};
 use ws::connect_websocket;
-use command::{greet, route_to_admin, back_to_login};
-use http::{login, get_user_info, get_chat_room_list, get_room_info, check_login, room_msg_list,
-           get_sys_time,logout};
-
 
 use crate::sqlite::sqlite::sqlite::delete_token_if_not_remember;
 use crate::sqlite::SqliteRbatis;
-
 
 pub enum ConnectedEnum {
     YES,
@@ -45,16 +48,13 @@ pub struct WsConnectFlag {
     connected: Arc<tokio::sync::Mutex<ConnectedEnum>>,
 }
 
-
 #[tokio::main]
 async fn main() {
     // 加载配置文件
     dotenv().ok();
     // 启用日志
-    fast_log::init(fast_log::Config::new()
-        .console()
-        .level(LevelFilter::Info)
-    ).expect ("rbatis  init fail");
+    fast_log::init(fast_log::Config::new().console().level(LevelFilter::Info))
+        .expect("rbatis  init fail");
 
     // 设置tauri 运行时
     tauri::async_runtime::set(tokio::runtime::Handle::current());
@@ -71,7 +71,7 @@ async fn main() {
             let window = app_handle.get_window("login").unwrap();
             set_shadow(&window, true).unwrap();
             let ws_connect_flag = WsConnectFlag {
-                connected: Arc::new(tokio::sync::Mutex::new(ConnectedEnum::NO))
+                connected: Arc::new(tokio::sync::Mutex::new(ConnectedEnum::NO)),
             };
             app_handle.manage(ws_connect_flag);
             Ok(())
@@ -81,9 +81,9 @@ async fn main() {
         // 配置rust指令，可以让前端调用
         .invoke_handler(tauri::generate_handler![
             greet,
-      route_to_admin,
-      back_to_login,
-      connect_websocket,
+            route_to_admin,
+            back_to_login,
+            connect_websocket,
             login,
             logout,
             get_user_info,
@@ -92,7 +92,7 @@ async fn main() {
             check_login,
             room_msg_list,
             get_sys_time
-    ])
+        ])
         // 配置系统托盘
         .system_tray(tray)
         // 设置窗口事件
@@ -107,10 +107,18 @@ async fn main() {
 fn menu_event_handle(event: WindowMenuEvent<Wry>) {
     match event.menu_item_id() {
         "gpt" => {
-            event.window().app_handle().emit_all("to-url-page", "https://chat.openai.com/").unwrap();
+            event
+                .window()
+                .app_handle()
+                .emit_all("to-url-page", "https://chat.openai.com/")
+                .unwrap();
         }
         "bing" => {
-            event.window().app_handle().emit_all("to-url-page", "https://www.bing.com").unwrap();
+            event
+                .window()
+                .app_handle()
+                .emit_all("to-url-page", "https://www.bing.com")
+                .unwrap();
         }
         "open" => {
             //获取本地文件路径
@@ -126,12 +134,13 @@ fn menu_event_handle(event: WindowMenuEvent<Wry>) {
                 win.show().unwrap();
             } else {
                 thread::spawn(move || {
-                    let new_window = tauri::WindowBuilder::new(&app_handle,
-                                                               "gpt",
-                                                               tauri::WindowUrl::External
-                                                                   ("https://chat.openai.com/".parse()
-                                                                       .unwrap())).build().expect
-                    ("failed to build window");
+                    let new_window = tauri::WindowBuilder::new(
+                        &app_handle,
+                        "gpt",
+                        tauri::WindowUrl::External("https://chat.openai.com/".parse().unwrap()),
+                    )
+                    .build()
+                    .expect("failed to build window");
                     new_window.show().unwrap();
                     let window_copy = new_window.clone();
                     new_window.on_window_event(move |event| match event {
@@ -140,8 +149,7 @@ fn menu_event_handle(event: WindowMenuEvent<Wry>) {
                             window_copy.hide().unwrap();
                         }
                         _ => {}
-                    }
-                    );
+                    });
                 });
             }
         }
@@ -174,7 +182,6 @@ fn window_event_handle(event: GlobalWindowEvent<Wry>) {
     }
 }
 
-
 ///系统托盘菜单点击事件
 fn tray_menu_handle(app_handle: &AppHandle<Wry>, event: SystemTrayEvent) {
     match event {
@@ -199,22 +206,26 @@ fn tray_menu_handle(app_handle: &AppHandle<Wry>, event: SystemTrayEvent) {
                         let handle = app_handle.clone();
                         let window_opt = windows.get(key);
                         if let Some(window) = window_opt {
-                            tauri::api::dialog::confirm(Some(&window), "Tauri", "确定要退出吗?", move |answer| {
-                                // do something with `answer`
-                                if answer {
-                                    tauri::async_runtime::block_on(async
-                                        move {
-                                        let option_state: Option<State<'_, SqliteRbatis>> = handle
-                                            .try_state();
-                                        if let Some(sql_state) = option_state {
-                                            delete_token_if_not_remember(sql_state).await
-                                        } else {
-                                            error!("无法获取rbatis");
-                                        }
-                                        std::process::exit(0);
-                                    });
-                                }
-                            });
+                            tauri::api::dialog::confirm(
+                                Some(&window),
+                                "Tauri",
+                                "确定要退出吗?",
+                                move |answer| {
+                                    // do something with `answer`
+                                    if answer {
+                                        tauri::async_runtime::block_on(async move {
+                                            let option_state: Option<State<'_, SqliteRbatis>> =
+                                                handle.try_state();
+                                            if let Some(sql_state) = option_state {
+                                                delete_token_if_not_remember(sql_state).await
+                                            } else {
+                                                error!("无法获取rbatis");
+                                            }
+                                            std::process::exit(0);
+                                        });
+                                    }
+                                },
+                            );
                         }
                     }
                 }
@@ -249,12 +260,11 @@ fn tray_menu_handle(app_handle: &AppHandle<Wry>, event: SystemTrayEvent) {
     }
 }
 
-
 /// 托盘图标闪烁并播放提示音
 fn system_tray_flicker(app_handle: &AppHandle<Wry>) {
+    use rodio::{Decoder, Source};
     use std::fs::File;
     use std::io::BufReader;
-    use rodio::{Decoder, Source};
 
     let window = app_handle.get_window("main").unwrap();
 
@@ -271,7 +281,11 @@ fn system_tray_flicker(app_handle: &AppHandle<Wry>) {
     let app = app_handle.clone();
     spawn(move || {
         let handle = app.tray_handle();
-        let none_icon = Icon::Rgba { rgba: vec![0, 0, 0, 1], width: 1, height: 1 };
+        let none_icon = Icon::Rgba {
+            rgba: vec![0, 0, 0, 1],
+            width: 1,
+            height: 1,
+        };
         let origin_icon = Icon::File(PathBuf::from("icons/icon.ico"));
         loop {
             if window.is_visible().unwrap() {
@@ -306,18 +320,24 @@ fn create_system_menu() -> Menu {
     let quit = CustomMenuItem::new("quit", "退出");
     let hide = CustomMenuItem::new("hide", "最小化");
     let add_window = CustomMenuItem::new("add", "新增窗口");
-    let submenu_window = Submenu::new("window", Menu::new()
-        .add_item(add_window)
-        .add_item(hide)
-        .add_item(quit));
-
-    let submenu_file = Submenu::new("file", Menu::new()
-        .add_item(CustomMenuItem::new("open", "打开文件")),
+    let submenu_window = Submenu::new(
+        "window",
+        Menu::new()
+            .add_item(add_window)
+            .add_item(hide)
+            .add_item(quit),
     );
 
-    let submenu_tab = Submenu::new("tab", Menu::new()
-        .add_item(CustomMenuItem::new("gpt", "ChatGPT"))
-        .add_item(CustomMenuItem::new("bing", "Bing")),
+    let submenu_file = Submenu::new(
+        "file",
+        Menu::new().add_item(CustomMenuItem::new("open", "打开文件")),
+    );
+
+    let submenu_tab = Submenu::new(
+        "tab",
+        Menu::new()
+            .add_item(CustomMenuItem::new("gpt", "ChatGPT"))
+            .add_item(CustomMenuItem::new("bing", "Bing")),
     );
 
     let menu = Menu::new()
